@@ -11,18 +11,16 @@ export default async function EditArticlePage({ params }: { params: { slug: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect(`/dang-nhap?callbackUrl=/dang-bai/${params.slug}/sua`);
 
+  if ((session.user as any).role !== "ADMIN") {
+    redirect("/tai-khoan");
+  }
+
   const [article, categories] = await Promise.all([
     prisma.article.findUnique({ where: { slug: params.slug } }),
     prisma.category.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!article) notFound();
-
-  const role = (session.user as any).role;
-  const userId = (session.user as any).id;
-  if (article.authorId !== userId && role !== "ADMIN") {
-    redirect("/tai-khoan");
-  }
 
   return (
     <div className="py-10">
