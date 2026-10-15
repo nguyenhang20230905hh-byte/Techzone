@@ -6,6 +6,7 @@ import { getSiteSettings } from "@/lib/settings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import SettingsManager from "@/components/admin/SettingsManager";
 import FeaturedManager from "@/components/admin/FeaturedManager";
+import UserExportPanel from "@/components/admin/UserExportPanel";
 
 export const metadata = { title: "Quản trị — TECHZONE" };
 export const revalidate = 0;
@@ -54,6 +55,11 @@ export default async function AdminPage() {
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-bold text-navy">Bài viết nổi bật / Premium</h2>
         <FeaturedManager initial={articles} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-bold text-navy">Danh sách người dùng</h2>
+        <UserExportPanel />
       </section>
     </div>
   );
