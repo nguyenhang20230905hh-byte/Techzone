@@ -43,42 +43,44 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-navy">Bài viết của tôi ({myArticles.length})</h2>
-            <Link href="/dang-bai" className="rounded-full bg-electric px-4 py-1.5 text-sm font-semibold text-white">
-              + Đăng bài mới
-            </Link>
-          </div>
+        {user.role === "ADMIN" && (
+          <div className="lg:col-span-2">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-navy">Bài viết của tôi ({myArticles.length})</h2>
+              <Link href="/dang-bai" className="rounded-full bg-electric px-4 py-1.5 text-sm font-semibold text-white">
+                + Đăng bài mới
+              </Link>
+            </div>
 
-          {myArticles.length === 0 ? (
-            <p className="rounded border border-line bg-mist px-4 py-8 text-center text-sm text-ink/50">
-              Bạn chưa đăng bài nào.
-            </p>
-          ) : (
-            <ul className="divide-y divide-line rounded-sm border border-line">
-              {myArticles.map((a) => (
-                <li key={a.slug} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <Link href={`/bai-viet/${a.slug}`} className="truncate font-semibold text-ink hover:text-electric">
-                      {a.title}
+            {myArticles.length === 0 ? (
+              <p className="rounded border border-line bg-mist px-4 py-8 text-center text-sm text-ink/50">
+                Bạn chưa đăng bài nào.
+              </p>
+            ) : (
+              <ul className="divide-y divide-line rounded-sm border border-line">
+                {myArticles.map((a) => (
+                  <li key={a.slug} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <Link href={`/bai-viet/${a.slug}`} className="truncate font-semibold text-ink hover:text-electric">
+                        {a.title}
+                      </Link>
+                      <p className="mt-0.5 text-xs text-ink/45">
+                        {formatShortDate(a.publishedAt)} · {a.viewCount.toLocaleString("vi-VN")} lượt xem
+                        {a.isPremium ? " · Premium" : ""}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/dang-bai/${a.slug}/sua`}
+                      className="shrink-0 rounded border border-line px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
+                    >
+                      Sửa
                     </Link>
-                    <p className="mt-0.5 text-xs text-ink/45">
-                      {formatShortDate(a.publishedAt)} · {a.viewCount.toLocaleString("vi-VN")} lượt xem
-                      {a.isPremium ? " · Premium" : ""}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/dang-bai/${a.slug}/sua`}
-                    className="shrink-0 rounded border border-line px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
-                  >
-                    Sửa
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
