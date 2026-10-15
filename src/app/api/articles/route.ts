@@ -3,22 +3,29 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { slugify, estimateReadingMinutes } from "@/lib/utils";
+import { isValidEmail } from "@/lib/utils";
+
+async function requireAdmin() {
+  const session = await getServerSession(authOptions);
+  return (session?.user as any)?.role === "ADMIN";
+}
+
+export async function GET() {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Chỉ quản trị viên được xem danh sách này." }, { status: 403 });
+  }
+  const emails = await prisma.allowedEmail.findMany({ orderBy: { createdAt: "desc" } });
+  return NextResponse.json(emails);
+}
 
 const schema = z.object({
-  title: z.string().trim().min(10, "Tiêu đề quá ngắn.").max(200),
-  summary: z.string().trim().min(20, "Tóm tắt quá ngắn.").max(400),
-  content: z.string().trim().min(400, "Nội dung bài viết nên có ít nhất khoảng 400 ký tự."),
-  coverImageUrl: z.string().url("Ảnh bìa không hợp lệ."),
-  categoryId: z.string().min(1, "Vui lòng chọn chuyên mục."),
-  tags: z.array(z.string().trim().min(1)).max(8).optional(),
-  isPremium: z.boolean().optional(),
+  email: z.string().trim().email("Email không hợp lệ."),
+  note: z.string().trim().max(200).optional(),
 });
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Bạn cần đăng nhập để đăng bài." }, { status: 401 });
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Chỉ quản trị viên được thêm email." }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
@@ -29,47 +36,20 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const data = parsed.data;
 
-  const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
-  if (!category) {
-    return NextResponse.json({ error: "Chuyên mục không tồn tại." }, { status: 400 });
+  const email = parsed.data.email.toLowerCase().trim();
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "Email không hợp lệ." }, { status: 400 });
   }
 
-  const baseSlug = slugify(data.title);
-  let slug = baseSlug;
-  let n = 1;
-  while (await prisma.article.findUnique({ where: { slug } })) {
-    n += 1;
-    slug = `${baseSlug}-${n}`;
+  const exists = await prisma.allowedEmail.findUnique({ where: { email } });
+  if (exists) {
+    return NextResponse.json({ error: "Email này đã có trong danh sách." }, { status: 409 });
   }
 
-  const tagNames = Array.from(new Set((data.tags || []).map((t) => t.trim()).filter(Boolean)));
-  const tagRecords = await Promise.all(
-    tagNames.map(async (name) => {
-      const tagSlug = slugify(name);
-      return prisma.tag.upsert({
-        where: { slug: tagSlug },
-        update: {},
-        create: { name, slug: tagSlug },
-      });
-    })
-  );
-
-  const article = await prisma.article.create({
-    data: {
-      slug,
-      title: data.title,
-      summary: data.summary,
-      content: data.content,
-      coverImageUrl: data.coverImageUrl,
-      readingMinutes: estimateReadingMinutes(data.content),
-      isPremium: Boolean(data.isPremium),
-      authorId: (session.user as any).id,
-      categoryId: data.categoryId,
-      tags: { create: tagRecords.map((t) => ({ tagId: t.id })) },
-    },
+  const allowedEmail = await prisma.allowedEmail.create({
+    data: { email, note: parsed.data.note },
   });
 
-  return NextResponse.json({ slug: article.slug }, { status: 201 });
+  return NextResponse.json(allowedEmail, { status: 201 });
 }
