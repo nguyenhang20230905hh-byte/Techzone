@@ -22,67 +22,88 @@ export const HOME_CATEGORY_ORDER = [
   "doi-song-so",
 ];
 
+const EMPTY_HOME_FEED = {
+  main: undefined as ArticleCardData | undefined,
+  secondary: [] as ArticleCardData[],
+  gridFeed: [] as ArticleCardData[],
+  latest: [] as ArticleCardData[],
+  mostRead: [] as ArticleCardData[],
+  categoryBlocks: [] as {
+    slug: string;
+    name: string;
+    featured: ArticleCardData;
+    rest: ArticleCardData[];
+  }[],
+};
+
 export async function getHomeFeed() {
-  const [featuredPick, allRecent, mostRead] = await Promise.all([
-    prisma.article.findFirst({
-      where: { status: "PUBLISHED", isFeatured: true },
-      orderBy: { publishedAt: "desc" },
-      select: CARD_SELECT,
-    }),
-    prisma.article.findMany({
-      where: { status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      take: 24,
-      select: CARD_SELECT,
-    }),
-    prisma.article.findMany({
-      where: { status: "PUBLISHED" },
-      orderBy: { viewCount: "desc" },
-      take: 8,
-      select: CARD_SELECT,
-    }),
-  ]);
-
-  const main: ArticleCardData | undefined = featuredPick ?? allRecent[0];
-  const rest = allRecent.filter((a) => a.slug !== main?.slug);
-
-  const secondary = rest.slice(0, 3);
-  const gridFeed = rest.slice(3, 11);
-  const latest = allRecent.slice(0, 8);
-
-  const categoryBlocks = await Promise.all(
-    HOME_CATEGORY_ORDER.map(async (slug) => {
-      const category = await prisma.category.findUnique({ where: { slug } });
-      if (!category) return null;
-      const articles = await prisma.article.findMany({
-        where: { status: "PUBLISHED", categoryId: category.id },
+  try {
+    const [featuredPick, allRecent, mostRead] = await Promise.all([
+      prisma.article.findFirst({
+        where: { status: "PUBLISHED", isFeatured: true },
         orderBy: { publishedAt: "desc" },
-        take: 4,
         select: CARD_SELECT,
-      });
-      if (articles.length === 0) return null;
-      return {
-        slug: category.slug,
-        name: category.name,
-        featured: articles[0],
-        rest: articles.slice(1, 4),
-      };
-    })
-  );
+      }),
+      prisma.article.findMany({
+        where: { status: "PUBLISHED" },
+        orderBy: { publishedAt: "desc" },
+        take: 24,
+        select: CARD_SELECT,
+      }),
+      prisma.article.findMany({
+        where: { status: "PUBLISHED" },
+        orderBy: { viewCount: "desc" },
+        take: 8,
+        select: CARD_SELECT,
+      }),
+    ]);
 
-  return {
-    main,
-    secondary,
-    gridFeed,
-    latest,
-    mostRead,
-    categoryBlocks: categoryBlocks.filter(Boolean) as {
-      slug: string;
-      name: string;
-      featured: ArticleCardData;
-      rest: ArticleCardData[];
-    }[],
-  };
+    const main: ArticleCardData | undefined = featuredPick ?? allRecent[0];
+    const rest = allRecent.filter((a) => a.slug !== main?.slug);
+
+    const secondary = rest.slice(0, 3);
+    const gridFeed = rest.slice(3, 11);
+    const latest = allRecent.slice(0, 8);
+
+    const categoryBlocks = await Promise.all(
+      HOME_CATEGORY_ORDER.map(async (slug) => {
+        const category = await prisma.category.findUnique({ where: { slug } });
+        if (!category) return null;
+        const articles = await prisma.article.findMany({
+          where: { status: "PUBLISHED", categoryId: category.id },
+          orderBy: { publishedAt: "desc" },
+          take: 4,
+          select: CARD_SELECT,
+        });
+        if (articles.length === 0) return null;
+        return {
+          slug: category.slug,
+          name: category.name,
+          featured: articles[0],
+          rest: articles.slice(1, 4),
+        };
+      })
+    );
+
+    return {
+      main,
+      secondary,
+      gridFeed,
+      latest,
+      mostRead,
+      categoryBlocks: categoryBlocks.filter(Boolean) as {
+        slug: string;
+        name: string;
+        featured: ArticleCardData;
+        rest: ArticleCardData[];
+      }[],
+    };
+  } catch (err) {
+    // DB chưa migrate/seed hoặc tạm mất kết nối — không để trang chủ vỡ (500),
+    // thay vào đó hiện trạng thái "chưa có bài viết nào".
+    console.error("[queries.getHomeFeed]", err);
+    return EMPTY_HOME_FEED;
+  }
 }
 
 export type CategoryPageFilters = {
