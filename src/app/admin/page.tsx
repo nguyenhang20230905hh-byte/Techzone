@@ -6,7 +6,6 @@ import { getSiteSettings } from "@/lib/settings";
 import CategoryManager from "@/components/admin/CategoryManager";
 import SettingsManager from "@/components/admin/SettingsManager";
 import FeaturedManager from "@/components/admin/FeaturedManager";
-import AllowedEmailsManager from "@/components/admin/AllowedEmailsManager";
 
 export const metadata = { title: "Quản trị — TECHZONE" };
 export const revalidate = 0;
@@ -16,7 +15,7 @@ export default async function AdminPage() {
   if (!session?.user) redirect("/dang-nhap?callbackUrl=/admin");
   if ((session.user as any).role !== "ADMIN") redirect("/");
 
-  const [categories, settings, articles, allowedEmails] = await Promise.all([
+  const [categories, settings, articles] = await Promise.all([
     prisma.category.findMany({ orderBy: { order: "asc" } }),
     getSiteSettings(),
     prisma.article.findMany({
@@ -24,7 +23,6 @@ export default async function AdminPage() {
       take: 50,
       select: { slug: true, title: true, isFeatured: true, isPremium: true },
     }),
-    prisma.allowedEmail.findMany({ orderBy: { createdAt: "desc" } }).catch(() => []),
   ]);
 
   return (
@@ -56,13 +54,6 @@ export default async function AdminPage() {
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-bold text-navy">Bài viết nổi bật / Premium</h2>
         <FeaturedManager initial={articles} />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-lg font-bold text-navy">Email được phép đăng ký</h2>
-        <AllowedEmailsManager
-          initial={allowedEmails.map((e) => ({ id: e.id, email: e.email, note: e.note }))}
-        />
       </section>
     </div>
   );
