@@ -15,24 +15,18 @@ const schema = z.object({
   isFeatured: z.boolean().optional(), // chỉ ADMIN mới thực sự đổi được (kiểm tra bên dưới)
 });
 
-async function findOwnedArticle(slug: string, userId: string, role: string) {
-  const article = await prisma.article.findUnique({ where: { slug } });
-  if (!article) return { article: null, allowed: false };
-  const allowed = article.authorId === userId || role === "ADMIN";
-  return { article, allowed };
-}
-
 export async function PATCH(req: Request, { params }: { params: { slug: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập." }, { status: 401 });
   }
-  const userId = (session.user as any).id;
   const role = (session.user as any).role;
+  if (role !== "ADMIN") {
+    return NextResponse.json({ error: "Chỉ quản trị viên được sửa bài." }, { status: 403 });
+  }
 
-  const { article, allowed } = await findOwnedArticle(params.slug, userId, role);
+  const article = await prisma.article.findUnique({ where: { slug: params.slug } });
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
-  if (!allowed) return NextResponse.json({ error: "Bạn không có quyền sửa bài này." }, { status: 403 });
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -70,12 +64,12 @@ export async function DELETE(_req: Request, { params }: { params: { slug: string
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập." }, { status: 401 });
   }
-  const userId = (session.user as any).id;
-  const role = (session.user as any).role;
+  if ((session.user as any).role !== "ADMIN") {
+    return NextResponse.json({ error: "Chỉ quản trị viên được xoá bài." }, { status: 403 });
+  }
 
-  const { article, allowed } = await findOwnedArticle(params.slug, userId, role);
+  const article = await prisma.article.findUnique({ where: { slug: params.slug } });
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
-  if (!allowed) return NextResponse.json({ error: "Bạn không có quyền xoá bài này." }, { status: 403 });
 
   await prisma.article.delete({ where: { slug: params.slug } });
   return NextResponse.json({ ok: true });
