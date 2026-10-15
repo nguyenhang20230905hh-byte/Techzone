@@ -20,6 +20,9 @@ export async function POST(req: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập để đăng bài." }, { status: 401 });
   }
+  if ((session.user as any).role !== "ADMIN") {
+    return NextResponse.json({ error: "Chỉ quản trị viên được đăng bài." }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
