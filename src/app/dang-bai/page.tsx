@@ -11,6 +11,18 @@ export default async function SubmitArticlePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/dang-nhap?callbackUrl=/dang-bai");
 
+  if ((session.user as any).role !== "ADMIN") {
+    return (
+      <div className="py-24 text-center">
+        <h1 className="text-xl font-bold text-navy">Bạn không có quyền đăng bài</h1>
+        <p className="mt-2 text-sm text-ink/60">
+          Chỉ tài khoản quản trị viên mới đăng được bài viết. Nếu bạn cần đăng bài, hãy liên hệ
+          quản trị viên của TECHZONE.
+        </p>
+      </div>
+    );
+  }
+
   const categories = await prisma.category.findMany({
     orderBy: { order: "asc" },
     select: { id: true, name: true },
