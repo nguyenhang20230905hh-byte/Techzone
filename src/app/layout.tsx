@@ -8,6 +8,8 @@ import TopUtilityBar from "@/components/TopUtilityBar";
 import CategoryNav from "@/components/CategoryNav";
 import Footer from "@/components/Footer";
 import { TopAdBanner } from "@/components/AdBanner";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -38,7 +40,12 @@ async function getNavCategories() {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [categories, settings] = await Promise.all([getNavCategories(), getSiteSettings()]);
+  const [categories, settings, session] = await Promise.all([
+    getNavCategories(),
+    getSiteSettings(),
+    getServerSession(authOptions),
+  ]);
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
@@ -46,7 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SessionProviderWrapper>
           <TopAdBanner banner={settings.topBanner} />
           <TopUtilityBar settings={settings} />
-          <Header slogan={settings.slogan} />
+          <Header slogan={settings.slogan} isAdmin={isAdmin} />
           <CategoryNav categories={categories} />
           <main className="mx-auto max-w-shell px-4">{children}</main>
           <Footer categories={categories} settings={settings} />
