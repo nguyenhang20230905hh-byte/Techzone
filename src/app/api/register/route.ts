@@ -31,17 +31,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email này đã được đăng ký." }, { status: 409 });
   }
 
-  const allowed = await prisma.allowedEmail.findUnique({ where: { email } });
-  if (!allowed) {
-    return NextResponse.json(
-      {
-        error:
-          "Email này chưa được quản trị viên duyệt để đăng ký. Vui lòng liên hệ quản trị viên để được thêm vào danh sách.",
-      },
-      { status: 403 }
-    );
-  }
-
+  // Đăng ký mở cho mọi người — tài khoản tạo ra chỉ để xem, lưu bài, bình luận.
+  // Quyền đăng bài không gắn với việc đăng ký nữa — xem route POST /api/articles.
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { name, email, passwordHash, role: "MEMBER" },
