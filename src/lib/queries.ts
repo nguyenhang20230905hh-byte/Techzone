@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ArticleCardData } from "@/lib/types";
+import { ARTICLE_AUTHORS } from "@/lib/constants";
 
 const CARD_SELECT = {
   slug: true,
@@ -12,6 +13,7 @@ const CARD_SELECT = {
   viewCount: true,
   category: { select: { slug: true, name: true } },
   author: { select: { name: true } },
+  authorName: true,
 } as const;
 
 export const HOME_CATEGORY_ORDER = [
@@ -123,8 +125,13 @@ export async function getCategoryPage(slug: string, filters: CategoryPageFilters
   const page = Math.max(1, filters.page ?? 1);
   const where: any = { status: "PUBLISHED", categoryId: category.id };
 
+  // Lọc theo "tác giả đăng" (bút danh chọn lúc đăng bài, xem lib/constants.ts)
+  // — bài cũ chưa có authorName thì vẫn khớp được bằng tên tài khoản đăng.
   if (filters.author) {
-    where.author = { name: { contains: filters.author, mode: "insensitive" } };
+    where.OR = [
+      { authorName: filters.author },
+      { authorName: null, author: { name: { contains: filters.author, mode: "insensitive" } } },
+    ];
   }
   if (filters.from || filters.to) {
     where.publishedAt = {};
@@ -132,7 +139,7 @@ export async function getCategoryPage(slug: string, filters: CategoryPageFilters
     if (filters.to) where.publishedAt.lte = new Date(`${filters.to}T23:59:59`);
   }
 
-  const [total, pageArticles, authors] = await Promise.all([
+  const [total, pageArticles] = await Promise.all([
     prisma.article.count({ where }),
     prisma.article.findMany({
       where,
@@ -140,11 +147,6 @@ export async function getCategoryPage(slug: string, filters: CategoryPageFilters
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       select: CARD_SELECT,
-    }),
-    prisma.article.findMany({
-      where: { categoryId: category.id },
-      select: { author: { select: { name: true } } },
-      distinct: ["authorId"],
     }),
   ]);
 
@@ -160,7 +162,8 @@ export async function getCategoryPage(slug: string, filters: CategoryPageFilters
     total,
     page,
     pageSize: PAGE_SIZE,
-    authors: Array.from(new Set(authors.map((a) => a.author.name))),
+    // Danh sách tác giả cố định (xem lib/constants.ts) để lọc — không dò DB.
+    authors: ARTICLE_AUTHORS as unknown as string[],
   };
 }
 
@@ -195,7 +198,14 @@ export async function searchArticles(query: string, filters: CategoryPageFilters
     ],
   };
   if (filters.author) {
-    where.author = { name: { contains: filters.author, mode: "insensitive" } };
+    where.AND = [
+      {
+        OR: [
+          { authorName: filters.author },
+          { authorName: null, author: { name: { contains: filters.author, mode: "insensitive" } } },
+        ],
+      },
+    ];
   }
 
   const [total, articles] = await Promise.all([
