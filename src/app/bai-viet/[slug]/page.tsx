@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/queries";
 import { getSiteSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
+import { getReaderAccess } from "@/lib/premium";
 import { formatVietnameseDate, parseArticleContent, truncateContent } from "@/lib/utils";
 import ArticleCard from "@/components/ArticleCard";
 import ViewTracker from "@/components/ViewTracker";
@@ -55,12 +56,12 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
 
   if (!article) notFound();
 
-  // Mô phỏng gói thành viên: bất kỳ ai đã đăng nhập đều có quyền đọc bài Premium
-  // (không tích hợp thanh toán thật, theo đúng phạm vi "paywall mô phỏng").
-  // Kiểm soát này thực hiện ở SERVER — người chưa đăng nhập không bao giờ nhận
+  // Quyền đọc bài Premium: ADMIN hoặc tài khoản có gói Premium CÒN HẠN (đọc từ database).
+  // Kiểm soát này thực hiện ở SERVER — người không đủ quyền không bao giờ nhận
   // được phần nội dung đầy đủ qua HTML, không phải chỉ ẩn bằng CSS/JS.
-  const hasAccess = !article.isPremium || Boolean(session?.user);
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const access = await getReaderAccess(session);
+  const hasAccess = !article.isPremium || access.canReadPremium;
+  const isAdmin = access.isAdmin;
 
   const [related, mostRead, comments] = await Promise.all([
     getRelatedArticles(article.categoryId, article.slug),
@@ -165,15 +166,24 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
               <div className="rounded-md border border-hot/30 bg-hot/5 p-5 text-center">
                 <p className="font-bold text-navy">Đây là bài viết Premium</p>
                 <p className="mt-1 text-sm text-ink/60">
-                  Đăng nhập hoặc đăng ký để đọc toàn bộ nội dung bài viết này và mọi bài Premium khác.
+                  {access.isLoggedIn
+                    ? access.premiumUntil
+                      ? "Gói Premium của bạn đã hết hạn. Gia hạn để đọc toàn bộ bài viết này và mọi bài Premium khác."
+                      : "Đăng ký gói Premium để đọc toàn bộ bài viết này và mọi bài Premium khác."
+                    : "Đăng nhập và đăng ký gói Premium để đọc toàn bộ bài viết này và mọi bài Premium khác."}
                 </p>
                 <div className="mt-3 flex justify-center gap-3">
-                  <Link href="/dang-nhap" className="rounded-full bg-electric px-5 py-2 text-sm font-semibold text-white">
-                    Đăng nhập
+                  <Link href="/premium" className="rounded-full bg-electric px-5 py-2 text-sm font-semibold text-white">
+                    {access.premiumUntil ? "Gia hạn Premium" : "Xem gói Premium"}
                   </Link>
-                  <Link href="/dang-ky" className="rounded-full border border-electric px-5 py-2 text-sm font-semibold text-electric">
-                    Đăng ký
-                  </Link>
+                  {!access.isLoggedIn && (
+                    <Link
+                      href={`/dang-nhap?callbackUrl=/bai-viet/${article.slug}`}
+                      className="rounded-full border border-electric px-5 py-2 text-sm font-semibold text-electric"
+                    >
+                      Đăng nhập
+                    </Link>
+                  )}
                 </div>
               </div>
             )}
