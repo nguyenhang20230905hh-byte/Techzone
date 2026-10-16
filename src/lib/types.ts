@@ -9,4 +9,5 @@ export type ArticleCardData = {
   viewCount: number;
   category: { slug: string; name: string };
   author: { name: string };
+  authorName: string | null;
 };
