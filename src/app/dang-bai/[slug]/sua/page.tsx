@@ -36,6 +36,7 @@ export default async function EditArticlePage({ params }: { params: { slug: stri
               content: article.content,
               coverImageUrl: article.coverImageUrl,
               categoryId: article.categoryId,
+              authorName: article.authorName || "Admin",
               isPremium: article.isPremium,
             }}
           />
