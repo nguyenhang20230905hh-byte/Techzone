@@ -26,6 +26,8 @@ export default function ArticleForm({
   const router = useRouter();
   const isEdit = Boolean(initial);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentImageInputRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const [title, setTitle] = useState(initial?.title || "");
   const [summary, setSummary] = useState(initial?.summary || "");
@@ -35,8 +37,20 @@ export default function ArticleForm({
   const [isPremium, setIsPremium] = useState(initial?.isPremium || false);
   const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl || "");
   const [uploading, setUploading] = useState(false);
+  const [contentImageUploading, setContentImageUploading] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Dùng chung cho cả ảnh bìa lẫn ảnh chèn trong nội dung - ảnh nào cũng đi qua
+  // /api/upload (chỉ ADMIN gọi được, xem lib/auth + api/upload/route.ts).
+  async function uploadImageFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại.");
+    return data.url as string;
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -44,16 +58,63 @@ export default function ArticleForm({
     setUploading(true);
     setError("");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại.");
-      setCoverImageUrl(data.url);
+      setCoverImageUrl(await uploadImageFile(file));
     } catch (err: any) {
       setError(err.message || "Tải ảnh thất bại.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  // Tải ảnh lên rồi chèn dòng "![](url)" vào ĐÚNG VỊ TRÍ con trỏ đang đặt trong
+  // ô nội dung (không phải luôn chèn ở cuối bài) - đây là ô nhập văn bản thuần,
+  // nên để "di chuyển" ảnh tới chỗ khác, cắt (cut) nguyên dòng ảnh rồi dán vào
+  // vị trí mong muốn, giống sửa một đoạn văn bản bình thường.
+  async function insertImageAtCursor(file: File) {
+    setError("");
+    const textarea = contentRef.current;
+    const caretPos = textarea ? textarea.selectionStart : content.length;
+    setContentImageUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      const markdown = `\n\n![](${url})\n\n`;
+      setContent((prev) => prev.slice(0, caretPos) + markdown + prev.slice(caretPos));
+      // Đặt lại con trỏ ngay sau ảnh vừa chèn, sau khi React render xong nội dung mới.
+      requestAnimationFrame(() => {
+        const el = contentRef.current;
+        if (el) {
+          const nextPos = caretPos + markdown.length;
+          el.focus();
+          el.setSelectionRange(nextPos, nextPos);
+        }
+      });
+    } catch (err: any) {
+      setError(err.message || "Tải ảnh thất bại.");
+    } finally {
+      setContentImageUploading(false);
+    }
+  }
+
+  function handleContentImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // cho phép chọn lại đúng file đó lần nữa nếu cần
+    if (file) insertImageAtCursor(file);
+  }
+
+  // Dán ảnh (Ctrl+V / Cmd+V) từ clipboard thẳng vào ô nội dung, ví dụ ảnh vừa
+  // chụp màn hình hoặc copy từ trình duyệt khác - không cần lưu ra file trước.
+  function handleContentPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          insertImageAtCursor(file);
+        }
+        return;
+      }
     }
   }
 
@@ -163,18 +224,40 @@ export default function ArticleForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-semibold text-ink/70">Nội dung bài viết</label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-sm font-semibold text-ink/70">Nội dung bài viết</label>
+          <button
+            type="button"
+            onClick={() => contentImageInputRef.current?.click()}
+            disabled={contentImageUploading}
+            className="rounded border border-line px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-electric hover:text-electric disabled:opacity-60"
+          >
+            {contentImageUploading ? "Đang tải ảnh..." : "🖼️ Chèn ảnh"}
+          </button>
+          <input
+            ref={contentImageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleContentImagePick}
+            className="hidden"
+          />
+        </div>
         <p className="mb-1.5 text-xs text-ink/45">
           Mẹo định dạng: dòng bắt đầu bằng <code className="rounded bg-mist px-1">## </code> thành
           tiêu đề phụ, dòng bắt đầu bằng <code className="rounded bg-mist px-1">- </code> thành gạch
-          đầu dòng, để trống một dòng giữa các đoạn văn.
+          đầu dòng, để trống một dòng giữa các đoạn văn. Để chèn ảnh vào giữa bài: đặt con trỏ vào
+          chỗ muốn chèn rồi bấm <strong>Chèn ảnh</strong>, hoặc dán trực tiếp ảnh đã copy (Ctrl+V /
+          Cmd+V) vào ô bên dưới. Muốn đổi vị trí ảnh: cắt nguyên dòng{" "}
+          <code className="rounded bg-mist px-1">![](...)</code> rồi dán vào chỗ khác.
         </p>
         <textarea
+          ref={contentRef}
           required
           minLength={400}
           rows={16}
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onPaste={handleContentPaste}
           className="w-full rounded border border-line px-3 py-2 text-sm leading-relaxed outline-none focus:border-electric"
         />
         <p className="mt-1 text-right text-xs text-ink/40">{content.trim().split(/\s+/).filter(Boolean).length} từ</p>
