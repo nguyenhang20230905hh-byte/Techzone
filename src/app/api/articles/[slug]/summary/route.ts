@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { summarizeArticle } from "@/lib/ai";
+import { getReaderAccess } from "@/lib/premium";
 
 export async function POST(_req: Request, { params }: { params: { slug: string } }) {
   const article = await prisma.article.findUnique({
@@ -11,12 +12,14 @@ export async function POST(_req: Request, { params }: { params: { slug: string }
   });
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
 
-  // Bài premium: phải đăng nhập mới được tóm tắt, tránh lộ nội dung trả phí qua AI.
+  // Bài premium: phải là ADMIN hoặc có Premium còn hạn mới được tóm tắt,
+  // tránh lộ nội dung trả phí qua AI.
   if (article.isPremium) {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const access = await getReaderAccess(session);
+    if (!access.canReadPremium) {
       return NextResponse.json(
-        { error: "Bài viết cao cấp — đăng nhập để dùng tóm tắt AI." },
+        { error: "Bài viết Premium — cần gói Premium còn hạn để dùng tóm tắt AI." },
         { status: 403 }
       );
     }
