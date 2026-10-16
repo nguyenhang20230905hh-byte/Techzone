@@ -5,14 +5,22 @@ export default function Header({ slogan, isAdmin }: { slogan: string; isAdmin?: 
   return (
     <header className="border-b border-line bg-white">
       <div className="mx-auto grid max-w-shell grid-cols-3 items-center px-4 py-4">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           {isAdmin && (
-            <Link
-              href="/dang-bai"
-              className="hidden rounded-full border border-electric px-4 py-1.5 text-sm font-semibold text-electric transition hover:bg-electric hover:text-white sm:inline-block"
-            >
-              Đăng bài
-            </Link>
+            <>
+              <Link
+                href="/dang-bai"
+                className="hidden rounded-full border border-electric px-4 py-1.5 text-sm font-semibold text-electric transition hover:bg-electric hover:text-white sm:inline-block"
+              >
+                Đăng bài
+              </Link>
+              <a
+                href="/api/admin/export-users"
+                className="hidden rounded-full border border-line px-4 py-1.5 text-sm font-semibold text-ink/70 transition hover:border-electric hover:text-electric sm:inline-block"
+              >
+                Xuất Excel
+              </a>
+            </>
           )}
         </div>
 
@@ -25,12 +33,20 @@ export default function Header({ slogan, isAdmin }: { slogan: string; isAdmin?: 
 
         <div className="flex items-center justify-end gap-3">
           {isAdmin && (
-            <Link
-              href="/dang-bai"
-              className="rounded-full border border-electric px-3 py-1.5 text-xs font-semibold text-electric sm:hidden"
-            >
-              Đăng bài
-            </Link>
+            <>
+              <Link
+                href="/dang-bai"
+                className="rounded-full border border-electric px-3 py-1.5 text-xs font-semibold text-electric sm:hidden"
+              >
+                Đăng bài
+              </Link>
+              <a
+                href="/api/admin/export-users"
+                className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink/70 sm:hidden"
+              >
+                Excel
+              </a>
+            </>
           )}
           <Link
             href="/premium"
