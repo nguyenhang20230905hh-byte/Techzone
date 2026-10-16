@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { estimateReadingMinutes, extractContentImageUrls } from "@/lib/utils";
+import { ARTICLE_AUTHORS } from "@/lib/constants";
 import { del } from "@vercel/blob";
 
 const schema = z.object({
@@ -12,6 +13,7 @@ const schema = z.object({
   content: z.string().trim().min(400).optional(),
   coverImageUrl: z.string().url().optional(),
   categoryId: z.string().min(1).optional(),
+  authorName: z.enum(ARTICLE_AUTHORS).optional(),
   isPremium: z.boolean().optional(),
   isFeatured: z.boolean().optional(), // chỉ ADMIN mới thực sự đổi được (kiểm tra bên dưới)
 });
@@ -53,6 +55,7 @@ export async function PATCH(req: Request, { params }: { params: { slug: string }
         : {}),
       ...(data.coverImageUrl ? { coverImageUrl: data.coverImageUrl } : {}),
       ...(data.categoryId ? { categoryId: data.categoryId } : {}),
+      ...(data.authorName ? { authorName: data.authorName } : {}),
       ...(data.isPremium !== undefined ? { isPremium: data.isPremium } : {}),
       ...(isFeatured !== undefined ? { isFeatured } : {}),
     },
