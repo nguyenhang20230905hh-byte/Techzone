@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getArticleBySlug, getRelatedArticles } from "@/lib/queries";
+import { getArticleBySlug, getRelatedArticles, CARD_SELECT } from "@/lib/queries";
 import { getSiteSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { getReaderAccess } from "@/lib/premium";
@@ -77,18 +77,7 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
       where: { status: "PUBLISHED" },
       orderBy: { viewCount: "desc" },
       take: 6,
-      select: {
-        slug: true,
-        title: true,
-        summary: true,
-        coverImageUrl: true,
-        isPremium: true,
-        publishedAt: true,
-        readingMinutes: true,
-        viewCount: true,
-        category: { select: { slug: true, name: true } },
-        author: { select: { name: true } },
-      },
+      select: CARD_SELECT,
     }),
     hasAccess
       ? prisma.comment.findMany({
