@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -28,6 +28,14 @@ export default function CheckoutForm({
   const [error, setError] = useState("");
   const [newUntil, setNewUntil] = useState<string | null>(null);
 
+  useEffect(() => {
+    (window as any).gtag?.("event", "begin_checkout", {
+      currency: "VND",
+      value: plan.price,
+      items: [{ item_id: plan.id, item_name: plan.name }],
+    });
+  }, [plan.id, plan.name, plan.price]);
+
   const base = currentUntil && new Date(currentUntil) > new Date() ? new Date(currentUntil) : new Date();
   const expectedUntil = addMonths(base, plan.months);
 
@@ -49,6 +57,13 @@ export default function CheckoutForm({
         return;
       }
       setNewUntil(data.premiumUntil);
+      // Sự kiện mô phỏng: đặt tên khác "purchase" để không lẫn vào doanh thu thật trong GA.
+      (window as any).gtag?.("event", "simulated_purchase", {
+        transaction_id: data.orderId,
+        currency: "VND",
+        value: plan.price,
+        items: [{ item_id: plan.id, item_name: plan.name }],
+      });
       setPhase("done");
       router.refresh();
     } catch {
