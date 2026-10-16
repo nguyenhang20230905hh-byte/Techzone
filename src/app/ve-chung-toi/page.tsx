@@ -39,10 +39,9 @@ export default function AboutPage() {
       <section className="mt-8 space-y-3">
         <h2 className="text-xl font-bold text-navy">Quy trình biên tập</h2>
         <p className="leading-relaxed text-ink/80">
-          Mọi bài viết trên TECHZONE đều được thành viên trong cộng đồng đóng góp và tự chịu trách
-          nhiệm về nội dung đăng tải. Đội ngũ biên tập rà soát định kỳ, đánh dấu các bài chất lượng
-          cao là "nổi bật", và có quyền gỡ bỏ nội dung sai sự thật hoặc vi phạm tiêu chuẩn cộng
-          đồng. Đây là dự án học tập — mọi bài viết mẫu ban đầu đều được ghi chú rõ ràng, không
+          Bài viết trên TECHZONE do đội ngũ biên tập đăng tải. Độc giả có thể đăng ký tài khoản để
+          bình luận và đọc các bài Premium. Đội ngũ biên tập đánh dấu các bài chất lượng cao là
+          "nổi bật", và có quyền gỡ bỏ nội dung sai sự thật hoặc vi phạm tiêu chuẩn cộng đồng. Đây là dự án học tập — mọi bài viết mẫu ban đầu đều được ghi chú rõ ràng, không
           tuyên bố là nội dung báo chí chính thức.
         </p>
       </section>
