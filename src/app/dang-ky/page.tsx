@@ -48,7 +48,7 @@ export default function RegisterPage() {
     <div className="mx-auto max-w-sm py-16">
       <h1 className="text-2xl font-extrabold text-navy">Đăng ký</h1>
       <p className="mt-1 text-sm text-ink/60">
-        Tạo tài khoản để bình luận và đọc không giới hạn mọi bài Premium.
+        Tạo tài khoản để bình luận và đăng ký gói Premium đọc không giới hạn.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
