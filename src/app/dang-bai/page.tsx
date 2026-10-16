@@ -1,43 +1,45 @@
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ArticleForm from "@/components/ArticleForm";
 
-export const metadata = { title: "Đăng bài viết — TECHZONE" };
+export const metadata = { title: "Sửa bài viết — TECHZONE" };
 export const revalidate = 0;
 
-export default async function SubmitArticlePage() {
+export default async function EditArticlePage({ params }: { params: { slug: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/dang-nhap?callbackUrl=/dang-bai");
+  if (!session?.user) redirect(`/dang-nhap?callbackUrl=/dang-bai/${params.slug}/sua`);
 
   if ((session.user as any).role !== "ADMIN") {
-    return (
-      <div className="py-24 text-center">
-        <h1 className="text-xl font-bold text-navy">Bạn không có quyền đăng bài</h1>
-        <p className="mt-2 text-sm text-ink/60">
-          Chỉ tài khoản quản trị viên mới đăng được bài viết. Nếu bạn cần đăng bài, hãy liên hệ
-          quản trị viên của TECHZONE.
-        </p>
-      </div>
-    );
+    redirect("/tai-khoan");
   }
 
-  const categories = await prisma.category.findMany({
-    orderBy: { order: "asc" },
-    select: { id: true, name: true },
-  });
+  const [article, categories] = await Promise.all([
+    prisma.article.findUnique({ where: { slug: params.slug } }),
+    prisma.category.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
+  ]);
+
+  if (!article) notFound();
 
   return (
     <div className="py-10">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-extrabold text-navy">Đăng bài viết mới</h1>
-        <p className="mt-1 text-sm text-ink/60">
-          Bài viết sẽ hiển thị công khai ngay sau khi đăng. Hệ thống tự nhận diện chuyên mục bạn
-          chọn để xếp bài vào đúng khu vực tương ứng trên trang chủ.
-        </p>
+        <h1 className="text-2xl font-extrabold text-navy">Sửa bài viết</h1>
         <div className="mt-6">
-          <ArticleForm categories={categories} />
+          <ArticleForm
+            categories={categories}
+            initial={{
+              slug: article.slug,
+              title: article.title,
+              summary: article.summary,
+              content: article.content,
+              coverImageUrl: article.coverImageUrl,
+              categoryId: article.categoryId,
+              authorName: article.authorName || "Admin",
+              isPremium: article.isPremium,
+            }}
+          />
         </div>
       </div>
     </div>
