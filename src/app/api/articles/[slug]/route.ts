@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { estimateReadingMinutes } from "@/lib/utils";
+import { del } from "@vercel/blob";
 
 const schema = z.object({
   title: z.string().trim().min(10).max(200).optional(),
@@ -72,5 +73,18 @@ export async function DELETE(_req: Request, { params }: { params: { slug: string
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
 
   await prisma.article.delete({ where: { slug: params.slug } });
+
+  // Dọn ảnh bìa trên Vercel Blob (không chặn việc xoá bài nếu bước này lỗi).
+  // Bỏ qua nếu ảnh vẫn đang được bài khác dùng chung.
+  const coverUrl = article.coverImageUrl;
+  if (process.env.BLOB_READ_WRITE_TOKEN && coverUrl.includes(".blob.vercel-storage.com")) {
+    try {
+      const stillUsed = await prisma.article.count({ where: { coverImageUrl: coverUrl } });
+      if (stillUsed === 0) await del(coverUrl);
+    } catch (err) {
+      console.error("[articles.DELETE] không xoá được ảnh bìa trên Blob:", err);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
