@@ -87,17 +87,18 @@ export async function notifyAdminNewSubscriber(email: string) {
   );
 }
 
-/** Gửi file CSV danh sách người dùng tới email admin (dùng từ trang /admin). */
-export async function emailUsersCsv(to: string, csvContent: string) {
+/** Gửi file Excel (.xlsx) danh sách người dùng tới email admin (dùng từ trang /admin). */
+export async function emailUsersExcel(to: string, xlsxBuffer: Buffer) {
   return sendEmail({
     to,
-    subject: "TECHZONE — Danh sách người dùng (xuất .csv)",
-    html: `<p>File đính kèm là danh sách toàn bộ người dùng hiện có trên TECHZONE, xuất lúc ${new Date().toLocaleString(
-      "vi-VN"
-    )}.</p>`,
+    subject: "TECHZONE — Danh sách người dùng (xuất .xlsx)",
+    html: `<p>File đính kèm là danh sách toàn bộ người dùng hiện có trên TECHZONE (email, ngày đăng ký,
+           loại tài khoản, gói đăng ký, trạng thái nhận bản tin), xuất lúc ${new Date().toLocaleString(
+             "vi-VN"
+           )}.</p>`,
     attachment: {
-      filename: "techzone-users.csv",
-      content: Buffer.from(csvContent, "utf-8").toString("base64"),
+      filename: "techzone-nguoi-dung.xlsx",
+      content: xlsxBuffer.toString("base64"),
     },
   });
 }
