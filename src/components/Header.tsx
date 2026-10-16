@@ -33,8 +33,8 @@ export default function Header({ slogan, isAdmin }: { slogan: string; isAdmin?: 
             </Link>
           )}
           <Link
-            href="/dang-ky"
-            className="hidden rounded-full bg-navy px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-navy-light sm:inline-block"
+            href="/premium"
+            className="rounded-full bg-navy px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-navy-light sm:px-4 sm:text-sm"
           >
             Premium
           </Link>
