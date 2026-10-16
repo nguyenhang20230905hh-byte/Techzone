@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { ArticleCardData } from "@/lib/types";
 import { ARTICLE_AUTHORS } from "@/lib/constants";
 
-const CARD_SELECT = {
+export const CARD_SELECT = {
   slug: true,
   title: true,
   summary: true,
