@@ -3,6 +3,7 @@
 import type React from "react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ARTICLE_AUTHORS } from "@/lib/constants";
 
 type Category = { id: string; name: string };
 
@@ -13,6 +14,7 @@ type InitialData = {
   content: string;
   coverImageUrl: string;
   categoryId: string;
+  authorName: string;
   isPremium: boolean;
 };
 
@@ -33,6 +35,7 @@ export default function ArticleForm({
   const [summary, setSummary] = useState(initial?.summary || "");
   const [content, setContent] = useState(initial?.content || "");
   const [categoryId, setCategoryId] = useState(initial?.categoryId || categories[0]?.id || "");
+  const [authorName, setAuthorName] = useState(initial?.authorName || ARTICLE_AUTHORS[0]);
   const [tags, setTags] = useState("");
   const [isPremium, setIsPremium] = useState(initial?.isPremium || false);
   const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl || "");
@@ -147,6 +150,7 @@ export default function ArticleForm({
       content,
       coverImageUrl,
       categoryId,
+      authorName,
       isPremium,
       ...(isEdit
         ? {}
@@ -215,8 +219,22 @@ export default function ArticleForm({
             ))}
           </select>
         </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-ink/70">Tác giả đăng</label>
+          <select
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-electric"
+          >
+            {ARTICLE_AUTHORS.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </div>
         {!isEdit && (
-          <div>
+          <div className="sm:col-span-2">
             <label className="mb-1 block text-sm font-semibold text-ink/70">Tag (cách nhau bằng dấu phẩy)</label>
             <input
               value={tags}
