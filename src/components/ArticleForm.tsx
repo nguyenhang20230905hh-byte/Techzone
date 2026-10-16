@@ -41,13 +41,28 @@ export default function ArticleForm({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Đọc response JSON một cách an toàn: nếu server trả về rỗng hoặc không phải
+  // JSON (lỗi 500 bất ngờ, timeout, gateway lỗi...), vẫn báo lỗi rõ ràng thay vì
+  // làm crash ở res.json() với thông báo khó hiểu "Unexpected end of JSON input".
+  async function parseJsonResponse(res: Response): Promise<any> {
+    const text = await res.text();
+    if (!text) {
+      throw new Error(`Server không phản hồi dữ liệu (mã lỗi ${res.status}). Vui lòng thử lại.`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Server trả về dữ liệu không hợp lệ (mã lỗi ${res.status}). Vui lòng thử lại.`);
+    }
+  }
+
   // Dùng chung cho cả ảnh bìa lẫn ảnh chèn trong nội dung - ảnh nào cũng đi qua
   // /api/upload (chỉ ADMIN gọi được, xem lib/auth + api/upload/route.ts).
   async function uploadImageFile(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
     const res = await fetch("/api/upload", { method: "POST", body: formData });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại.");
     return data.url as string;
   }
@@ -147,7 +162,7 @@ export default function ArticleForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Có lỗi xảy ra.");
       router.push(`/bai-viet/${data.slug}`);
       router.refresh();
