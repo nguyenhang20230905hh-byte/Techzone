@@ -2,13 +2,21 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getReaderAccess } from "@/lib/premium";
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
   const article = await prisma.article.findUnique({
     where: { slug: params.slug },
-    select: { id: true },
+    select: { id: true, isPremium: true },
   });
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
+
+  if (article.isPremium) {
+    const access = await getReaderAccess(await getServerSession(authOptions));
+    if (!access.canReadPremium) {
+      return NextResponse.json({ error: "Bài viết Premium." }, { status: 403 });
+    }
+  }
 
   const comments = await prisma.comment.findMany({
     where: { articleId: article.id, isDeleted: false },
@@ -37,9 +45,19 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
 
   const article = await prisma.article.findUnique({
     where: { slug: params.slug },
-    select: { id: true },
+    select: { id: true, isPremium: true },
   });
   if (!article) return NextResponse.json({ error: "Không tìm thấy bài viết." }, { status: 404 });
+
+  if (article.isPremium) {
+    const access = await getReaderAccess(session);
+    if (!access.canReadPremium) {
+      return NextResponse.json(
+        { error: "Cần gói Premium còn hạn để bình luận ở bài Premium." },
+        { status: 403 }
+      );
+    }
+  }
 
   const body = await req.json().catch(() => null);
   const content = sanitizeComment((body?.content || "").toString());
