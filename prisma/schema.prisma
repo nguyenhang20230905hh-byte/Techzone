@@ -65,6 +65,10 @@ model Article {
   title           String
   summary         String
   content         String    // Markdown-lite: đoạn văn cách nhau bằng dòng trống, tiêu đề phụ bắt đầu bằng "## "
+  // Tên tác giả hiển thị (bút danh chọn từ danh sách cố định ở lib/constants.ts) —
+  // KHÁC với authorId/author bên dưới, vốn luôn là tài khoản ADMIN thực sự đăng bài.
+  // null = bài cũ trước khi có tính năng này, hiển thị dùng tên tài khoản đăng (author.name).
+  authorName      String?
   coverImageUrl   String
   coverImageAlt   String?
   coverImageCredit String?
