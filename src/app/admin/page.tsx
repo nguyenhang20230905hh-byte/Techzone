@@ -53,7 +53,7 @@ export default async function AdminPage() {
       </div>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-bold text-navy">Bài viết nổi bật / Premium</h2>
+        <h2 className="mb-3 text-lg font-bold text-navy">Quản lý bài viết (nổi bật · Premium · sửa · xoá)</h2>
         <FeaturedManager initial={articles} />
       </section>
 
