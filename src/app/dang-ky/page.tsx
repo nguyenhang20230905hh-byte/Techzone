@@ -30,6 +30,7 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+      (window as any).gtag?.("event", "sign_up", { method: "email" });
       const signInRes = await signIn("credentials", { email, password, redirect: false });
       setLoading(false);
       if (signInRes?.error) {
