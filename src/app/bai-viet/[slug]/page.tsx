@@ -145,7 +145,7 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
           <p className="mt-3 text-lg leading-relaxed text-ink/70">{article.summary}</p>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
-            <span className="font-semibold text-ink">{article.author.name}</span>
+            <span className="font-semibold text-ink">{article.authorName || article.author.name}</span>
             <span>·</span>
             <span>Đăng {formatVietnameseDate(article.publishedAt)}</span>
             {article.updatedAt > article.publishedAt && (
