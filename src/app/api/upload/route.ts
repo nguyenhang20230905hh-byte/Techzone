@@ -6,6 +6,7 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export async function POST(req: Request) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập để tải ảnh lên." }, { status: 401 });
@@ -61,6 +62,13 @@ export async function POST(req: Request) {
     console.error("[upload] ghi file local lỗi:", err);
     return NextResponse.json(
       { error: "Không lưu được ảnh. Trên Vercel hãy cấu hình BLOB_READ_WRITE_TOKEN." },
+      { status: 500 }
+    );
+  }
+  } catch (err) {
+    console.error("[upload] lỗi không lường trước:", err);
+    return NextResponse.json(
+      { error: "Có lỗi xảy ra phía server, vui lòng thử lại." },
       { status: 500 }
     );
   }
