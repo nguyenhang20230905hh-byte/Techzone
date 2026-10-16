@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import DeleteArticleButton from "@/components/DeleteArticleButton";
 
 type ArticleRow = { slug: string; title: string; isFeatured: boolean; isPremium: boolean };
 
@@ -27,7 +28,7 @@ export default function FeaturedManager({ initial }: { initial: ArticleRow[] }) 
   return (
     <ul className="divide-y divide-line rounded border border-line">
       {articles.map((a) => (
-        <li key={a.slug} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+        <li key={a.slug} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
           <Link href={`/bai-viet/${a.slug}`} className="min-w-0 flex-1 truncate font-medium text-ink hover:text-electric">
             {a.title}
           </Link>
@@ -39,8 +40,22 @@ export default function FeaturedManager({ initial }: { initial: ArticleRow[] }) 
             <input type="checkbox" checked={a.isPremium} onChange={() => toggle(a, "isPremium")} />
             Premium
           </label>
+          <Link
+            href={`/dang-bai/${a.slug}/sua`}
+            className="shrink-0 rounded border border-line px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
+          >
+            Sửa
+          </Link>
+          <DeleteArticleButton
+            slug={a.slug}
+            title={a.title}
+            onDeleted={() => setArticles((prev) => prev.filter((x) => x.slug !== a.slug))}
+          />
         </li>
       ))}
+      {articles.length === 0 && (
+        <li className="px-3 py-4 text-center text-sm text-ink/40">Chưa có bài viết nào.</li>
+      )}
     </ul>
   );
 }
