@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCategoryPage } from "@/lib/queries";
+import { getCategoryPage, CARD_SELECT } from "@/lib/queries";
 import { getSiteSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import ArticleCard from "@/components/ArticleCard";
@@ -41,18 +41,7 @@ export default async function CategoryPage({
       where: { status: "PUBLISHED" },
       orderBy: { viewCount: "desc" },
       take: 6,
-      select: {
-        slug: true,
-        title: true,
-        summary: true,
-        coverImageUrl: true,
-        isPremium: true,
-        publishedAt: true,
-        readingMinutes: true,
-        viewCount: true,
-        category: { select: { slug: true, name: true } },
-        author: { select: { name: true } },
-      },
+      select: CARD_SELECT,
     }),
   ]);
 
