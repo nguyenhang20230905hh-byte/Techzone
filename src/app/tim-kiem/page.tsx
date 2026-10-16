@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { searchArticles } from "@/lib/queries";
-import { prisma } from "@/lib/prisma";
+import { ARTICLE_AUTHORS } from "@/lib/constants";
 import ArticleCard from "@/components/ArticleCard";
 import FilterBar from "@/components/FilterBar";
 import Pagination from "@/components/Pagination";
@@ -20,10 +20,9 @@ export default async function SearchPage({
     page: searchParams.page ? Number(searchParams.page) : 1,
   };
 
-  const [result, authorRows] = await Promise.all([
-    q ? searchArticles(q, filters) : Promise.resolve({ total: 0, articles: [], page: 1, pageSize: 9 }),
-    prisma.user.findMany({ select: { name: true }, take: 100 }),
-  ]);
+  const result = q
+    ? await searchArticles(q, filters)
+    : { total: 0, articles: [], page: 1, pageSize: 9 };
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
 
@@ -41,7 +40,7 @@ export default async function SearchPage({
       {q && (
         <FilterBar
           basePath="/tim-kiem"
-          authors={Array.from(new Set(authorRows.map((a) => a.name)))}
+          authors={ARTICLE_AUTHORS as unknown as string[]}
           currentQuery={q}
           defaults={filters}
         />
