@@ -41,6 +41,14 @@ function ArticleBody({ content }: { content: string }) {
               ))}
             </ul>
           );
+        if (b.type === "image")
+          return (
+            <figure key={i}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={b.url} alt={b.alt} loading="lazy" />
+              {b.alt && <figcaption>{b.alt}</figcaption>}
+            </figure>
+          );
         return <p key={i}>{b.text}</p>;
       })}
     </div>
