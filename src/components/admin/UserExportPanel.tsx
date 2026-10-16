@@ -22,14 +22,15 @@ export default function UserExportPanel() {
   return (
     <div>
       <p className="mb-3 text-xs text-ink/60">
-        Xuất danh sách toàn bộ người dùng (tên, email, vai trò, ngày tham gia).
+        Xuất danh sách toàn bộ người dùng dạng Excel (.xlsx): email, ngày đăng ký, loại tài khoản
+        (Free/Premium), gói đăng ký (1 tháng/6 tháng/1 năm) và tình trạng nhận bản tin.
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <a
           href="/api/admin/export-users"
           className="rounded bg-navy px-4 py-1.5 text-sm font-semibold text-white hover:bg-navy-light"
         >
-          Tải file CSV
+          Tải file Excel
         </a>
         <button
           onClick={handleEmailSend}
