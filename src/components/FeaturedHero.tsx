@@ -32,7 +32,7 @@ export default function FeaturedHero({
         </h1>
         <p className="mt-2 line-clamp-3 text-[15px] leading-relaxed text-ink/70">{main.summary}</p>
         <p className="mt-2 text-xs text-ink/50">
-          {main.author.name} · {formatShortDate(main.publishedAt)} · {main.readingMinutes} phút đọc
+          {main.authorName || main.author.name} · {formatShortDate(main.publishedAt)} · {main.readingMinutes} phút đọc
         </p>
       </Link>
 
