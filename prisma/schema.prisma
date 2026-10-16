@@ -24,10 +24,13 @@ model User {
   bio           String?
   avatarUrl     String?
   createdAt     DateTime  @default(now())
+  // Hạn dùng gói Premium. null hoặc đã qua = chưa có / hết hạn. ADMIN luôn đọc được bài Premium.
+  premiumUntil  DateTime?
 
   articles      Article[]
   comments      Comment[]
   savedArticles SavedArticle[]
+  orders        Order[]
 
   @@map("authors")
 }
@@ -176,4 +179,24 @@ model AllowedEmail {
   createdAt DateTime @default(now())
 
   @@map("allowed_emails")
+}
+
+// Đơn đăng ký Premium. Hiện ở chế độ MÔ PHỎNG (simulated = true): không có tiền thật chạy.
+// Khi tích hợp cổng thanh toán thật, tạo đơn trạng thái PENDING rồi chuyển PAID khi webhook xác nhận.
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String   // "1m" | "6m" | "12m" | "grant" (admin tặng)
+  planName  String
+  months    Int
+  amount    Int      // VND, 0 nếu admin tặng
+  method    String   // card | wallet | bank | admin
+  status    String   @default("PAID") // PENDING | PAID | REFUNDED
+  simulated Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("orders")
 }
