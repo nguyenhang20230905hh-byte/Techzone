@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify, estimateReadingMinutes } from "@/lib/utils";
+import { ARTICLE_AUTHORS } from "@/lib/constants";
 
 const schema = z.object({
   title: z.string().trim().min(10, "Tiêu đề quá ngắn.").max(200),
@@ -11,6 +12,7 @@ const schema = z.object({
   content: z.string().trim().min(400, "Nội dung bài viết nên có ít nhất khoảng 400 ký tự."),
   coverImageUrl: z.string().url("Ảnh bìa không hợp lệ."),
   categoryId: z.string().min(1, "Vui lòng chọn chuyên mục."),
+  authorName: z.enum(ARTICLE_AUTHORS, { errorMap: () => ({ message: "Vui lòng chọn tác giả." }) }),
   tags: z.array(z.string().trim().min(1)).max(8).optional(),
   isPremium: z.boolean().optional(),
 });
@@ -67,6 +69,7 @@ export async function POST(req: Request) {
         summary: data.summary,
         content: data.content,
         coverImageUrl: data.coverImageUrl,
+        authorName: data.authorName,
         readingMinutes: estimateReadingMinutes(data.content),
         isPremium: Boolean(data.isPremium),
         authorId: (session.user as any).id,
