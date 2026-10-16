@@ -10,6 +10,10 @@ export async function POST(req: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập để tải ảnh lên." }, { status: 401 });
   }
+  // Chỉ quản trị viên được tải ảnh (ảnh chỉ dùng cho bài viết, mà chỉ ADMIN đăng bài).
+  if ((session.user as any).role !== "ADMIN") {
+    return NextResponse.json({ error: "Chỉ quản trị viên được tải ảnh lên." }, { status: 403 });
+  }
 
   const formData = await req.formData().catch(() => null);
   const file = formData?.get("file");
@@ -29,23 +33,35 @@ export async function POST(req: Request) {
   const ext = file.type.split("/")[1] || "jpg";
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  // Có BLOB_READ_WRITE_TOKEN: upload lên Vercel Blob (bền vững, dùng được trên production).
+  // Có BLOB_READ_WRITE_TOKEN: upload lên Vercel Blob (store phải ở chế độ PUBLIC).
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(`techzone/${filename}`, file, { access: "public" });
-    return NextResponse.json({ url: blob.url }, { status: 201 });
+    try {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(`techzone/${filename}`, file, { access: "public" });
+      return NextResponse.json({ url: blob.url }, { status: 201 });
+    } catch (err) {
+      console.error("[upload] Vercel Blob lỗi:", err);
+      return NextResponse.json(
+        { error: "Không tải ảnh lên được, kiểm tra cấu hình Vercel Blob (store phải ở chế độ Public)." },
+        { status: 500 }
+      );
+    }
   }
 
-  // Không có token: lưu tạm vào ổ đĩa local — CHỈ hoạt động ổn định khi chạy
-  // `npm run dev`/`npm start` trên máy thật. Trên Vercel, filesystem là tạm thời
-  // (ephemeral) nên ảnh có thể biến mất sau một thời gian — vì vậy README nhắc rõ
-  // phải cấu hình BLOB_READ_WRITE_TOKEN trước khi deploy production.
-  const fs = await import("fs/promises");
-  const path = await import("path");
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadsDir, { recursive: true });
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(path.join(uploadsDir, filename), buffer);
-
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  // Không có token: lưu tạm vào ổ đĩa local — CHỈ dùng khi chạy `npm run dev` trên máy thật.
+  try {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadsDir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(path.join(uploadsDir, filename), buffer);
+    return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  } catch (err) {
+    console.error("[upload] ghi file local lỗi:", err);
+    return NextResponse.json(
+      { error: "Không lưu được ảnh. Trên Vercel hãy cấu hình BLOB_READ_WRITE_TOKEN." },
+      { status: 500 }
+    );
+  }
 }
