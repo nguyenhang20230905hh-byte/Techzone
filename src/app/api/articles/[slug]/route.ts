@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { estimateReadingMinutes } from "@/lib/utils";
+import { estimateReadingMinutes, extractContentImageUrls } from "@/lib/utils";
 import { del } from "@vercel/blob";
 
 const schema = z.object({
@@ -17,6 +17,7 @@ const schema = z.object({
 });
 
 export async function PATCH(req: Request, { params }: { params: { slug: string } }) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập." }, { status: 401 });
@@ -57,10 +58,56 @@ export async function PATCH(req: Request, { params }: { params: { slug: string }
     },
   });
 
+  // Dọn ảnh cũ trên Vercel Blob khi sửa bài làm ảnh đó không còn được dùng nữa
+  // (đổi ảnh bìa, hoặc gỡ/thay ảnh chèn trong nội dung). Không chặn việc lưu
+  // bài nếu bước dọn dẹp này lỗi.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    // Ảnh bìa cũ, nếu vừa bị thay bằng ảnh bìa khác.
+    if (
+      data.coverImageUrl &&
+      data.coverImageUrl !== article.coverImageUrl &&
+      article.coverImageUrl.includes(".blob.vercel-storage.com")
+    ) {
+      try {
+        const stillUsed = await prisma.article.count({
+          where: { coverImageUrl: article.coverImageUrl },
+        });
+        if (stillUsed === 0) await del(article.coverImageUrl);
+      } catch (err) {
+        console.error("[articles.PATCH] không xoá được ảnh bìa cũ trên Blob:", err);
+      }
+    }
+
+    // Ảnh chèn trong nội dung cũ mà bản nội dung mới không còn dùng nữa.
+    if (data.content) {
+      const oldUrls = extractContentImageUrls(article.content).filter((url) =>
+        url.includes(".blob.vercel-storage.com")
+      );
+      const newUrls = new Set(extractContentImageUrls(data.content));
+      const removedUrls = oldUrls.filter((url) => !newUrls.has(url));
+      for (const url of removedUrls) {
+        try {
+          const stillUsed = await prisma.article.count({ where: { content: { contains: url } } });
+          if (stillUsed === 0) await del(url);
+        } catch (err) {
+          console.error("[articles.PATCH] không xoá được ảnh cũ trong nội dung trên Blob:", err);
+        }
+      }
+    }
+  }
+
   return NextResponse.json({ slug: updated.slug });
+  } catch (err) {
+    console.error("[articles.PATCH] lỗi không lường trước:", err);
+    return NextResponse.json(
+      { error: "Có lỗi xảy ra phía server, vui lòng thử lại." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: { slug: string } }) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Bạn cần đăng nhập." }, { status: 401 });
@@ -86,5 +133,29 @@ export async function DELETE(_req: Request, { params }: { params: { slug: string
     }
   }
 
+  // Dọn các ảnh chèn trong nội dung bài viết trên Vercel Blob. Vì ảnh chèn
+  // không có cột riêng trong DB (chỉ nằm trong text content), kiểm tra "còn
+  // dùng ở bài khác không" bằng cách tìm URL đó trong content của các bài còn lại.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const contentImageUrls = extractContentImageUrls(article.content).filter((url) =>
+      url.includes(".blob.vercel-storage.com")
+    );
+    for (const url of contentImageUrls) {
+      try {
+        const stillUsed = await prisma.article.count({ where: { content: { contains: url } } });
+        if (stillUsed === 0) await del(url);
+      } catch (err) {
+        console.error("[articles.DELETE] không xoá được ảnh trong nội dung trên Blob:", err);
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[articles.DELETE] lỗi không lường trước:", err);
+    return NextResponse.json(
+      { error: "Có lỗi xảy ra phía server, vui lòng thử lại." },
+      { status: 500 }
+    );
+  }
 }
