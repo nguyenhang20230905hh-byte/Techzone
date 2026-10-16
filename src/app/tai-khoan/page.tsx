@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatShortDate } from "@/lib/utils";
+import { formatVND } from "@/lib/plans";
+import { isPremiumActive } from "@/lib/premium";
 import AccountForm from "@/components/AccountForm";
 import DeleteArticleButton from "@/components/DeleteArticleButton";
 
@@ -16,7 +18,7 @@ export default async function AccountPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: (session.user as any).id },
-    select: { name: true, email: true, role: true, bio: true, createdAt: true },
+    select: { name: true, email: true, role: true, bio: true, createdAt: true, premiumUntil: true },
   });
   if (!user) redirect("/dang-nhap");
 
@@ -25,6 +27,14 @@ export default async function AccountPage() {
     orderBy: { publishedAt: "desc" },
     select: { slug: true, title: true, status: true, viewCount: true, publishedAt: true, isPremium: true },
   });
+
+  const orders = await prisma.order.findMany({
+    where: { userId: (session.user as any).id },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: { id: true, planName: true, amount: true, simulated: true, createdAt: true },
+  });
+  const premiumActive = isPremiumActive(user.premiumUntil);
 
   return (
     <div className="py-10">
@@ -44,8 +54,53 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        {user.role === "ADMIN" && (
-          <div className="lg:col-span-2">
+        <div className="space-y-8 lg:col-span-2">
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-navy">Gói Premium</h2>
+              <Link href="/premium" className="rounded-full bg-electric px-4 py-1.5 text-sm font-semibold text-white">
+                {premiumActive ? "Gia hạn" : "Đăng ký Premium"}
+              </Link>
+            </div>
+            <div className="rounded-sm border border-line p-4 text-sm">
+              {user.role === "ADMIN" ? (
+                <p className="text-ink/70">Quản trị viên luôn đọc được mọi bài Premium.</p>
+              ) : premiumActive && user.premiumUntil ? (
+                <p className="text-ink/70">
+                  <span className="font-semibold text-electric">Đang hoạt động</span> · còn hạn đến{" "}
+                  <strong>{formatShortDate(user.premiumUntil)}</strong>
+                </p>
+              ) : user.premiumUntil ? (
+                <p className="text-ink/70">
+                  <span className="font-semibold text-hot">Đã hết hạn</span> từ{" "}
+                  {formatShortDate(user.premiumUntil)}. Gia hạn để đọc tiếp các bài Premium.
+                </p>
+              ) : (
+                <p className="text-ink/70">Bạn chưa đăng ký gói Premium.</p>
+              )}
+            </div>
+            {orders.length > 0 && (
+              <ul className="mt-3 divide-y divide-line rounded-sm border border-line text-sm">
+                {orders.map((o) => (
+                  <li key={o.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-ink">{o.planName}</p>
+                      <p className="text-xs text-ink/45">
+                        {formatShortDate(o.createdAt)}
+                        {o.simulated ? " · giao dịch mô phỏng" : ""}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-semibold text-ink">
+                      {o.amount === 0 ? "Tặng" : formatVND(o.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {user.role === "ADMIN" && (
+          <div>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-navy">Bài viết của tôi ({myArticles.length})</h2>
               <Link href="/dang-bai" className="rounded-full bg-electric px-4 py-1.5 text-sm font-semibold text-white">
@@ -84,7 +139,8 @@ export default async function AccountPage() {
               </ul>
             )}
           </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
