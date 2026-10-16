@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type React from "react";
+import Script from "next/script";
 import { Be_Vietnam_Pro, Lora } from "next/font/google";
 import "./globals.css";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
@@ -46,10 +47,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getServerSession(authOptions),
   ]);
   const isAdmin = (session?.user as any)?.role === "ADMIN";
+  // Mã đo lường Google Analytics 4. Ưu tiên biến môi trường, dự phòng dùng mã dưới đây.
+  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-0BQQ8G8612";
 
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable}`}>
       <body className="min-h-screen bg-white font-sans text-ink antialiased">
+        {/* Không nạp GA cho quản trị viên để số liệu không lẫn lượt truy cập của chính bạn */}
+        {gaId && !isAdmin && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}');`}
+            </Script>
+          </>
+        )}
         <SessionProviderWrapper>
           <TopAdBanner banner={settings.topBanner} />
           <TopUtilityBar settings={settings} />
