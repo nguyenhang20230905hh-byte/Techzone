@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatShortDate } from "@/lib/utils";
 import AccountForm from "@/components/AccountForm";
+import DeleteArticleButton from "@/components/DeleteArticleButton";
 
 export const metadata = { title: "Tài khoản — TECHZONE" };
 export const revalidate = 0;
@@ -69,12 +70,15 @@ export default async function AccountPage() {
                         {a.isPremium ? " · Premium" : ""}
                       </p>
                     </div>
-                    <Link
-                      href={`/dang-bai/${a.slug}/sua`}
-                      className="shrink-0 rounded border border-line px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
-                    >
-                      Sửa
-                    </Link>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={`/dang-bai/${a.slug}/sua`}
+                        className="rounded border border-line px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
+                      >
+                        Sửa
+                      </Link>
+                      <DeleteArticleButton slug={a.slug} title={a.title} />
+                    </div>
                   </li>
                 ))}
               </ul>
