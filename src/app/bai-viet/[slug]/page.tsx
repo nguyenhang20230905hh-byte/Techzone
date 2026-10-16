@@ -11,6 +11,7 @@ import ArticleCard from "@/components/ArticleCard";
 import ViewTracker from "@/components/ViewTracker";
 import AISummaryButton from "@/components/AISummaryButton";
 import CommentSection from "@/components/CommentSection";
+import DeleteArticleButton from "@/components/DeleteArticleButton";
 import { MostReadModule, SideAdModule } from "@/components/SideModules";
 
 export const revalidate = 0;
@@ -59,6 +60,7 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
   // Kiểm soát này thực hiện ở SERVER — người chưa đăng nhập không bao giờ nhận
   // được phần nội dung đầy đủ qua HTML, không phải chỉ ẩn bằng CSS/JS.
   const hasAccess = !article.isPremium || Boolean(session?.user);
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   const [related, mostRead, comments] = await Promise.all([
     getRelatedArticles(article.categoryId, article.slug),
@@ -103,6 +105,19 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
           {article.category.name}
         </Link>
       </nav>
+
+      {isAdmin && (
+        <div className="mb-4 flex items-center gap-2 rounded border border-line bg-mist px-3 py-2 text-sm">
+          <span className="mr-auto font-semibold text-ink/60">Quản trị viên</span>
+          <Link
+            href={`/dang-bai/${article.slug}/sua`}
+            className="rounded border border-line bg-white px-3 py-1 text-xs font-semibold hover:border-electric hover:text-electric"
+          >
+            Sửa bài
+          </Link>
+          <DeleteArticleButton slug={article.slug} title={article.title} redirectTo="/" />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
