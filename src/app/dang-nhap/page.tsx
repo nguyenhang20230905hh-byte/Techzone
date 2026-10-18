@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 
 function LoginForm() {
   const router = useRouter();
@@ -40,6 +41,8 @@ function LoginForm() {
           <label className="mb-1 block text-sm font-medium text-ink/70">Email</label>
           <input
             type="email"
+            name="email"
+            autoComplete="username"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -48,12 +51,11 @@ function LoginForm() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-ink/70">Mật khẩu</label>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-electric"
+            onChange={setPassword}
+            autoComplete="current-password"
           />
         </div>
         {error && <p className="text-sm text-hot">{error}</p>}
