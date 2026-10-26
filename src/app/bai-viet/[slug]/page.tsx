@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getArticleBySlug, getRelatedArticles, CARD_SELECT } from "@/lib/queries";
@@ -113,6 +114,12 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
 
   const displayContent = hasAccess ? article.content : truncateContent(article.content, 110);
 
+  // URL tuyệt đối của bài để nút chia sẻ có link thật (trước đây "u=" bị để trống).
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const articleUrl = `${proto}://${host}/bai-viet/${article.slug}`;
+
   return (
     <article className="py-6">
       <ViewTracker slug={article.slug} />
@@ -224,7 +231,7 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
                   </div>
                 )}
 
-                <ShareRow title={article.title} />
+                <ShareRow title={article.title} url={articleUrl} />
 
                 <AISummaryButton slug={article.slug} />
 
@@ -264,13 +271,13 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
   );
 }
 
-function ShareRow({ title }: { title: string }) {
+function ShareRow({ title, url }: { title: string; url: string }) {
   return (
     <div className="mt-6 flex items-center gap-2 border-y border-line py-3 text-sm">
       <span className="font-semibold text-ink/60">Chia sẻ:</span>
       <a
         className="rounded border border-line px-3 py-1 hover:border-electric hover:text-electric"
-        href={`https://www.facebook.com/sharer/sharer.php?u=&t=${encodeURIComponent(title)}`}
+        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
         target="_blank"
         rel="noreferrer"
       >
@@ -278,7 +285,7 @@ function ShareRow({ title }: { title: string }) {
       </a>
       <a
         className="rounded border border-line px-3 py-1 hover:border-electric hover:text-electric"
-        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}`}
+        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
         target="_blank"
         rel="noreferrer"
       >
