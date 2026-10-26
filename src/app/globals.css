@@ -62,3 +62,11 @@ body {
   font-style: italic;
   color: #6b7280;
 }
+.article-body a {
+  color: #2a7de1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-body a:hover {
+  color: #0b1e3d;
+}
