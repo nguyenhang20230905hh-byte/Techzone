@@ -119,6 +119,37 @@ export default function ArticleForm({
     if (file) insertImageAtCursor(file);
   }
 
+  // Chèn "[nhãn](url)" ở đúng vị trí con trỏ/đoạn đang bôi đen trong ô nội
+  // dung — giống cách "Chèn ảnh" hoạt động ở trên. Nếu người dùng đã bôi đen
+  // sẵn 1 đoạn chữ thì dùng luôn đoạn đó làm nhãn hiển thị của link.
+  function insertLinkAtCursor() {
+    const textarea = contentRef.current;
+    const selStart = textarea ? textarea.selectionStart : content.length;
+    const selEnd = textarea ? textarea.selectionEnd : content.length;
+    const selectedText = content.slice(selStart, selEnd);
+
+    const url = window.prompt("Dán đường dẫn liên kết (bắt đầu bằng http:// hoặc https://):");
+    if (!url) return;
+    const trimmedUrl = url.trim();
+    if (!/^https?:\/\//i.test(trimmedUrl)) {
+      setError("Liên kết phải bắt đầu bằng http:// hoặc https://.");
+      return;
+    }
+    setError("");
+
+    const label = selectedText.trim() || window.prompt("Chữ hiển thị cho liên kết:", "") || trimmedUrl;
+    const markdown = `[${label}](${trimmedUrl})`;
+    setContent((prev) => prev.slice(0, selStart) + markdown + prev.slice(selEnd));
+    requestAnimationFrame(() => {
+      const el = contentRef.current;
+      if (el) {
+        const nextPos = selStart + markdown.length;
+        el.focus();
+        el.setSelectionRange(nextPos, nextPos);
+      }
+    });
+  }
+
   // Dán ảnh (Ctrl+V / Cmd+V) từ clipboard thẳng vào ô nội dung, ví dụ ảnh vừa
   // chụp màn hình hoặc copy từ trình duyệt khác - không cần lưu ra file trước.
   function handleContentPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
@@ -259,14 +290,23 @@ export default function ArticleForm({
       <div>
         <div className="mb-1 flex items-center justify-between">
           <label className="block text-sm font-semibold text-ink/70">Nội dung bài viết</label>
-          <button
-            type="button"
-            onClick={() => contentImageInputRef.current?.click()}
-            disabled={contentImageUploading}
-            className="rounded border border-line px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-electric hover:text-electric disabled:opacity-60"
-          >
-            {contentImageUploading ? "Đang tải ảnh..." : "🖼️ Chèn ảnh"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={insertLinkAtCursor}
+              className="rounded border border-line px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-electric hover:text-electric"
+            >
+              🔗 Chèn liên kết
+            </button>
+            <button
+              type="button"
+              onClick={() => contentImageInputRef.current?.click()}
+              disabled={contentImageUploading}
+              className="rounded border border-line px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-electric hover:text-electric disabled:opacity-60"
+            >
+              {contentImageUploading ? "Đang tải ảnh..." : "🖼️ Chèn ảnh"}
+            </button>
+          </div>
           <input
             ref={contentImageInputRef}
             type="file"
@@ -281,7 +321,10 @@ export default function ArticleForm({
           đầu dòng, để trống một dòng giữa các đoạn văn. Để chèn ảnh vào giữa bài: đặt con trỏ vào
           chỗ muốn chèn rồi bấm <strong>Chèn ảnh</strong>, hoặc dán trực tiếp ảnh đã copy (Ctrl+V /
           Cmd+V) vào ô bên dưới. Muốn đổi vị trí ảnh: cắt nguyên dòng{" "}
-          <code className="rounded bg-mist px-1">![](...)</code> rồi dán vào chỗ khác.
+          <code className="rounded bg-mist px-1">![](...)</code> rồi dán vào chỗ khác. Để chèn liên
+          kết ra trang ngoài: bôi đen đoạn chữ muốn làm nhãn (hoặc không cần) rồi bấm{" "}
+          <strong>Chèn liên kết</strong>, hoặc tự gõ theo cú pháp{" "}
+          <code className="rounded bg-mist px-1">[nhãn hiển thị](https://...)</code>.
         </p>
         <textarea
           ref={contentRef}
