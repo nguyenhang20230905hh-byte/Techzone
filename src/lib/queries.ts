@@ -118,11 +118,20 @@ export type CategoryPageFilters = {
 
 const PAGE_SIZE = 9;
 
+// ?page=abc hoặc ?from=xyz trên URL từng làm Prisma nhận NaN/Invalid Date -> lỗi 500.
+function safePage(p: number | undefined): number {
+  return p && Number.isFinite(p) ? Math.max(1, Math.floor(p)) : 1;
+}
+function safeDate(s: string): Date | null {
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export async function getCategoryPage(slug: string, filters: CategoryPageFilters) {
   const category = await prisma.category.findUnique({ where: { slug } });
   if (!category) return null;
 
-  const page = Math.max(1, filters.page ?? 1);
+  const page = safePage(filters.page);
   const where: any = { status: "PUBLISHED", categoryId: category.id };
 
   // Lọc theo "tác giả đăng" (bút danh chọn lúc đăng bài, xem lib/constants.ts)
@@ -133,10 +142,13 @@ export async function getCategoryPage(slug: string, filters: CategoryPageFilters
       { authorName: null, author: { name: { contains: filters.author, mode: "insensitive" } } },
     ];
   }
-  if (filters.from || filters.to) {
+  // Ngày lọc tính theo giờ Việt Nam (+07:00), không theo giờ UTC của server Vercel.
+  const from = filters.from ? safeDate(`${filters.from}T00:00:00+07:00`) : null;
+  const to = filters.to ? safeDate(`${filters.to}T23:59:59.999+07:00`) : null;
+  if (from || to) {
     where.publishedAt = {};
-    if (filters.from) where.publishedAt.gte = new Date(filters.from);
-    if (filters.to) where.publishedAt.lte = new Date(`${filters.to}T23:59:59`);
+    if (from) where.publishedAt.gte = from;
+    if (to) where.publishedAt.lte = to;
   }
 
   const [total, pageArticles] = await Promise.all([
@@ -188,7 +200,7 @@ export async function getRelatedArticles(categoryId: string, excludeSlug: string
 }
 
 export async function searchArticles(query: string, filters: CategoryPageFilters) {
-  const page = Math.max(1, filters.page ?? 1);
+  const page = safePage(filters.page);
   const where: any = {
     status: "PUBLISHED",
     OR: [
