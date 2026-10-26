@@ -27,7 +27,12 @@ export function estimateReadingMinutes(content: string): number {
   return Math.max(2, Math.round(words / 180));
 }
 
+// Server Vercel chạy giờ UTC — luôn hiển thị theo giờ Việt Nam, nếu không bài đăng
+// trước 7h sáng sẽ bị hiện lùi một ngày.
+const VN_TZ = "Asia/Ho_Chi_Minh";
+
 const vnDateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: VN_TZ,
   weekday: "long",
   day: "2-digit",
   month: "2-digit",
@@ -46,6 +51,7 @@ export function formatVietnameseDate(date: Date): string {
 
 export function formatShortDate(date: Date): string {
   return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: VN_TZ,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
