@@ -60,12 +60,54 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   ],
 };
 
+const str = (v: unknown, fallback: string) => (typeof v === "string" ? v : fallback);
+
+/**
+ * Chuẩn hoá cấu hình đọc từ DB: thiếu trường / sai kiểu (vd. dữ liệu lưu từ bản
+ * code cũ) thì lấy giá trị mặc định. Trước đây 1 trường linkUrl bị thiếu là đủ
+ * làm <Link href={undefined}> ném lỗi và sập TẤT CẢ các trang (banner nằm trong layout).
+ */
+function normalizeSettings(raw: Record<string, unknown>): SiteSettings {
+  const d = DEFAULT_SETTINGS;
+  const tb = (raw.topBanner && typeof raw.topBanner === "object" ? raw.topBanner : {}) as Record<string, unknown>;
+  const ads = Array.isArray(raw.inlineAds) ? raw.inlineAds : d.inlineAds;
+  const links = Array.isArray(raw.socialLinks) ? raw.socialLinks : d.socialLinks;
+  return {
+    siteName: str(raw.siteName, d.siteName),
+    slogan: str(raw.slogan, d.slogan),
+    contactEmail: str(raw.contactEmail, d.contactEmail),
+    topBanner: {
+      imageUrl: str(tb.imageUrl, d.topBanner.imageUrl) || d.topBanner.imageUrl,
+      title: str(tb.title, d.topBanner.title),
+      subtitle: str(tb.subtitle, d.topBanner.subtitle),
+      linkUrl: str(tb.linkUrl, d.topBanner.linkUrl) || "/",
+    },
+    inlineAds: ads
+      .filter((a): a is Record<string, unknown> => Boolean(a) && typeof a === "object")
+      .map((a, i) => ({
+        imageUrl: str(a.imageUrl, d.inlineAds[i]?.imageUrl ?? d.inlineAds[0].imageUrl) || d.inlineAds[0].imageUrl,
+        message: str(a.message, ""),
+        linkUrl: str(a.linkUrl, "/") || "/",
+      })),
+    socialLinks: links
+      .filter((s): s is Record<string, unknown> => Boolean(s) && typeof s === "object")
+      .map((s) => ({ label: str(s.label, ""), url: str(s.url, "#") || "#" })),
+  };
+}
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   try {
     const rows = await prisma.siteSetting.findMany();
     if (rows.length === 0) return DEFAULT_SETTINGS;
-    const map = Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
-    return { ...DEFAULT_SETTINGS, ...map };
+    const map: Record<string, unknown> = {};
+    for (const r of rows) {
+      try {
+        map[r.key] = JSON.parse(r.value);
+      } catch {
+        // 1 dòng cấu hình hỏng không được kéo theo cả site
+      }
+    }
+    return normalizeSettings(map);
   } catch (err) {
     // DB chưa migrate/seed lần đầu — vẫn trả về mặc định để trang chủ không vỡ layout.
     console.error("[settings.getSiteSettings]", err);
