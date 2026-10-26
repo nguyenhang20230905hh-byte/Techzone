@@ -31,6 +31,7 @@ model User {
   comments      Comment[]
   savedArticles SavedArticle[]
   orders        Order[]
+  notifications Notification[]
 
   @@map("authors")
 }
@@ -128,8 +129,36 @@ model Comment {
   createdAt DateTime  @default(now())
   isDeleted Boolean   @default(false) // xoá mềm để vẫn giữ mạch bình luận
 
+  // Phản hồi 1 cấp: parentId trỏ tới bình luận GỐC (không trỏ sang 1 phản hồi
+  // khác) — giữ giao diện đơn giản kiểu "1 bình luận + các phản hồi bên dưới",
+  // không lồng phản hồi-của-phản hồi. null = bình luận gốc trên bài viết.
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
   @@index([articleId])
+  @@index([parentId])
   @@map("comments")
+}
+
+// Thông báo cho 1 người dùng cụ thể (admin hoặc thành viên):
+//  - NEW_COMMENT: admin nhận khi có khán giả bình luận/phản hồi về 1 bài viết.
+//  - COMMENT_REPLY: tác giả 1 bình luận nhận khi có người (admin hoặc độc giả
+//    khác) phản hồi lại đúng bình luận của họ.
+//  - NEW_ARTICLE: mọi thành viên nhận khi admin đăng bài viết mới.
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  message     String
+  articleSlug String?
+  commentId   String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
 }
 
 model SavedArticle {
