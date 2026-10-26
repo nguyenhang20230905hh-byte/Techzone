@@ -55,7 +55,7 @@ export async function getHomeFeed() {
       prisma.article.findMany({
         where: { status: "PUBLISHED" },
         orderBy: { viewCount: "desc" },
-        take: 8,
+        take: 5,
         select: CARD_SELECT,
       }),
     ]);
