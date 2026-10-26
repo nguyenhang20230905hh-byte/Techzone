@@ -32,7 +32,7 @@ export function SideAdModule({ ad }: { ad: InlineAd }) {
       <span className="absolute left-2 top-2 z-10 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold text-white">
         QUẢNG CÁO
       </span>
-      <Image src={ad.imageUrl} alt={ad.message} fill sizes="320px" className="object-cover transition group-hover:scale-105" />
+      <Image src={ad.imageUrl} alt={ad.message} fill unoptimized sizes="320px" className="object-cover transition group-hover:scale-105" />
       <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-3">
         <span className="text-sm font-medium text-white">{ad.message}</span>
       </div>
