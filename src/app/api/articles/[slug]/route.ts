@@ -11,7 +11,10 @@ const schema = z.object({
   title: z.string().trim().min(10).max(200).optional(),
   summary: z.string().trim().min(20).max(400).optional(),
   content: z.string().trim().min(400).optional(),
-  coverImageUrl: z.string().url().optional(),
+  coverImageUrl: z
+    .string()
+    .refine((v) => /^https?:\/\//.test(v) || v.startsWith("/uploads/"), "Ảnh bìa không hợp lệ.")
+    .optional(),
   categoryId: z.string().min(1).optional(),
   authorName: z.enum(ARTICLE_AUTHORS).optional(),
   isPremium: z.boolean().optional(),
