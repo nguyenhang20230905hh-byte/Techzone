@@ -10,7 +10,9 @@ export async function POST(_req: Request, { params }: { params: { slug: string }
 
   await prisma.$transaction([
     prisma.articleView.create({ data: { articleId: article.id } }),
-    prisma.article.update({ where: { id: article.id }, data: { viewCount: { increment: 1 } } }),
+    // Tăng lượt xem bằng SQL thô: prisma.article.update sẽ tự đổi cột updatedAt
+    // (@updatedAt), làm bài nào có người đọc cũng hiện "Cập nhật <hôm nay>".
+    prisma.$executeRaw`UPDATE "articles" SET "viewCount" = "viewCount" + 1 WHERE "id" = ${article.id}`,
   ]);
 
   return NextResponse.json({ ok: true });
