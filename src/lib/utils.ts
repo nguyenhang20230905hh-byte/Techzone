@@ -74,6 +74,8 @@ export function isValidEmail(email: string): boolean {
  *  - Dòng bắt đầu bằng "- " (liên tiếp) => danh sách
  *  - Các đoạn còn lại cách nhau bằng dòng trống => <p>
  *  - Dòng riêng dạng "![alt text](url)" => ảnh chèn giữa bài (xem IMAGE_LINE_RE)
+ *  - Trong 1 đoạn văn/tiêu đề/gạch đầu dòng, "[nhãn](url)" => liên kết ra ngoài
+ *    (xem parseInlineSegments) — khác cú pháp ảnh ở chỗ không có dấu "!" phía trước.
  * Hàm này tách thành các khối có cấu trúc để component render ra HTML an toàn
  * (không dùng dangerouslySetInnerHTML với nội dung người dùng nhập).
  */
@@ -133,6 +135,30 @@ export function parseArticleContent(raw: string): ContentBlock[] {
   return blocks;
 }
 
+export type InlineSegment = { type: "text"; text: string } | { type: "link"; text: string; url: string };
+
+// "[nhãn hiển thị](https://...)" — chỉ nhận link http(s) để tránh chèn được
+// "javascript:" hay các scheme khác có thể chạy mã khi người dùng bấm vào.
+const INLINE_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+/**
+ * Tách 1 đoạn văn bản (trong <p>, <h2> hoặc 1 mục <li>) thành các đoạn chữ
+ * thường xen với liên kết, để component render ra <a> thật thay vì hiện
+ * nguyên văn cú pháp "[chữ](link)". Không dùng dangerouslySetInnerHTML.
+ */
+export function parseInlineSegments(text: string): InlineSegment[] {
+  const segments: InlineSegment[] = [];
+  let lastIndex = 0;
+  for (const match of text.matchAll(INLINE_LINK_RE)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) segments.push({ type: "text", text: text.slice(lastIndex, index) });
+    segments.push({ type: "link", text: match[1], url: match[2] });
+    lastIndex = index + match[0].length;
+  }
+  if (lastIndex < text.length) segments.push({ type: "text", text: text.slice(lastIndex) });
+  return segments;
+}
+
 /** Lấy danh sách URL ảnh được chèn trong nội dung bài viết (không gồm ảnh bìa riêng). */
 export function extractContentImageUrls(raw: string): string[] {
   return parseArticleContent(raw)
@@ -151,6 +177,16 @@ export function truncateContent(raw: string, wordLimit = 120): string {
   const lastImageStart = truncated.lastIndexOf("![");
   if (lastImageStart !== -1 && !truncated.slice(lastImageStart).includes(")")) {
     truncated = truncated.slice(0, lastImageStart).trim();
+  }
+  // Tương tự, nếu điểm cắt rơi vào giữa 1 liên kết "[nhãn](url)" dang dở thì bỏ
+  // hẳn phần đó, tránh hiện cú pháp vỡ ở bản xem trước Premium.
+  const lastLinkStart = truncated.lastIndexOf("[");
+  if (
+    lastLinkStart !== -1 &&
+    truncated[lastLinkStart - 1] !== "!" &&
+    !truncated.slice(lastLinkStart).includes(")")
+  ) {
+    truncated = truncated.slice(0, lastLinkStart).trim();
   }
   return truncated + "…";
 }
