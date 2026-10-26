@@ -7,7 +7,7 @@ import { getArticleBySlug, getRelatedArticles, CARD_SELECT } from "@/lib/queries
 import { getSiteSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { getReaderAccess } from "@/lib/premium";
-import { formatVietnameseDate, parseArticleContent, truncateContent } from "@/lib/utils";
+import { formatVietnameseDate, parseArticleContent, parseInlineSegments, truncateContent } from "@/lib/utils";
 import ArticleCard from "@/components/ArticleCard";
 import ViewTracker from "@/components/ViewTracker";
 import AISummaryButton from "@/components/AISummaryButton";
@@ -27,17 +27,37 @@ export async function generateMetadata({
   return { title: `${article.title} — TECHZONE`, description: article.summary };
 }
 
+// Render 1 đoạn chữ có thể chứa "[nhãn](https://...)" thành chữ thường xen link
+// thật — link mở tab mới, có rel="noopener" (và "ugc nofollow" vì đây là nội
+// dung người dùng/biên tập chèn, không phải TECHZONE tự xác nhận trang đích).
+function InlineText({ text }: { text: string }) {
+  const segments = parseInlineSegments(text);
+  return (
+    <>
+      {segments.map((s, i) =>
+        s.type === "link" ? (
+          <a key={i} href={s.url} target="_blank" rel="noopener noreferrer ugc nofollow">
+            {s.text}
+          </a>
+        ) : (
+          <span key={i}>{s.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
 function ArticleBody({ content }: { content: string }) {
   const blocks = parseArticleContent(content);
   return (
     <div className="article-body">
       {blocks.map((b, i) => {
-        if (b.type === "heading") return <h2 key={i}>{b.text}</h2>;
+        if (b.type === "heading") return <h2 key={i}><InlineText text={b.text} /></h2>;
         if (b.type === "list")
           return (
             <ul key={i}>
               {b.items.map((it, j) => (
-                <li key={j}>{it}</li>
+                <li key={j}><InlineText text={it} /></li>
               ))}
             </ul>
           );
@@ -49,7 +69,7 @@ function ArticleBody({ content }: { content: string }) {
               {b.alt && <figcaption>{b.alt}</figcaption>}
             </figure>
           );
-        return <p key={i}>{b.text}</p>;
+        return <p key={i}><InlineText text={b.text} /></p>;
       })}
     </div>
   );
@@ -76,14 +96,17 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
     prisma.article.findMany({
       where: { status: "PUBLISHED" },
       orderBy: { viewCount: "desc" },
-      take: 6,
+      take: 5,
       select: CARD_SELECT,
     }),
     hasAccess
       ? prisma.comment.findMany({
-          where: { articleId: article.id, isDeleted: false },
-          orderBy: { createdAt: "desc" },
-          include: { author: { select: { name: true } } },
+          // Không lọc isDeleted: 1 bình luận gốc bị xoá vẫn cần trả về để hiện
+          // "Bình luận đã bị xoá" và giữ được các phản hồi bên dưới nó (xem
+          // cùng lý do ở api/articles/[slug]/comments/route.ts).
+          where: { articleId: article.id },
+          orderBy: { createdAt: "asc" },
+          include: { author: { select: { name: true, role: true } } },
         })
       : Promise.resolve([]),
   ]);
@@ -212,6 +235,8 @@ export default async function ArticleDetailPage({ params }: { params: { slug: st
                     content: c.content,
                     createdAt: c.createdAt.toISOString(),
                     author: c.author,
+                    parentId: c.parentId,
+                    isDeleted: c.isDeleted,
                   }))}
                 />
               </>
