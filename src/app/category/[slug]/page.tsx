@@ -40,7 +40,7 @@ export default async function CategoryPage({
     prisma.article.findMany({
       where: { status: "PUBLISHED" },
       orderBy: { viewCount: "desc" },
-      take: 6,
+      take: 5,
       select: CARD_SELECT,
     }),
   ]);
