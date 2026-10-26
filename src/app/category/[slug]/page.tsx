@@ -31,7 +31,7 @@ export default async function CategoryPage({
     author: searchParams.author || undefined,
     from: searchParams.from || undefined,
     to: searchParams.to || undefined,
-    page: searchParams.page ? Number(searchParams.page) : 1,
+    page: Math.max(1, Math.floor(Number(searchParams.page)) || 1),
   };
 
   const [result, settings, mostRead] = await Promise.all([
