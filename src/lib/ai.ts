@@ -28,7 +28,9 @@ export async function summarizeArticle(title: string, content: string): Promise<
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
+        // claude-3-5-haiku đã bị Anthropic ngừng (19/02/2026) — gọi model cũ luôn lỗi 404.
+        // Đổi model bằng biến môi trường ANTHROPIC_MODEL mà không cần sửa code.
+        model: process.env.ANTHROPIC_MODEL || "claude-haiku-5-5",
         max_tokens: 500,
         messages: [
           {
@@ -53,7 +55,10 @@ ${content.slice(0, 6000)}`,
     }
     const data = await res.json();
     const text: string = data?.content?.[0]?.text ?? "";
-    const parsed = JSON.parse(text);
+    // Model hay bọc JSON trong ```json ... ``` — bóc ra phần {...} trước khi parse.
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    const parsed = JSON.parse(start !== -1 && end > start ? text.slice(start, end + 1) : text);
     if (!Array.isArray(parsed.points) || typeof parsed.conclusion !== "string") {
       throw new Error("Phản hồi AI không đúng định dạng.");
     }
