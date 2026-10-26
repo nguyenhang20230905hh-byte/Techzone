@@ -44,7 +44,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [categories, settings, session] = await Promise.all([
     getNavCategories(),
     getSiteSettings(),
-    getServerSession(authOptions),
+    // getServerSession ném lỗi (vd. thiếu NEXTAUTH_SECRET trên Vercel) sẽ làm sập
+    // MỌI trang vì layout bọc toàn site — bắt lỗi để trang vẫn hiển thị.
+    getServerSession(authOptions).catch((err) => {
+      console.error("[layout] getServerSession lỗi — kiểm tra NEXTAUTH_SECRET/NEXTAUTH_URL:", err);
+      return null;
+    }),
   ]);
   const isAdmin = (session?.user as any)?.role === "ADMIN";
   // Mã đo lường Google Analytics 4. Ưu tiên biến môi trường, dự phòng dùng mã dưới đây.
