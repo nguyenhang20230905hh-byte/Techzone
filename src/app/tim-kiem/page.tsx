@@ -17,7 +17,7 @@ export default async function SearchPage({
   const filters = {
     sort: searchParams.sort === "oldest" ? ("oldest" as const) : ("newest" as const),
     author: searchParams.author || undefined,
-    page: searchParams.page ? Number(searchParams.page) : 1,
+    page: Math.max(1, Math.floor(Number(searchParams.page)) || 1),
   };
 
   const result = q
