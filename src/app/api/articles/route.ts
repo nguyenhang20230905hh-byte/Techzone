@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify, estimateReadingMinutes } from "@/lib/utils";
 import { ARTICLE_AUTHORS } from "@/lib/constants";
+import { notifyNewArticle } from "@/lib/notifications";
 
 const schema = z.object({
   title: z.string().trim().min(10, "Tiêu đề quá ngắn.").max(200),
@@ -77,6 +78,12 @@ export async function POST(req: Request) {
         tags: { create: tagRecords.map((t) => ({ tagId: t.id })) },
       },
     });
+
+    // Báo mọi thành viên biết có bài mới — chạy sau khi đã tạo bài thành công,
+    // await để đảm bảo chạy xong trước khi response trả về (môi trường
+    // serverless không đảm bảo code chạy tiếp sau response). Hàm này tự bắt
+    // lỗi riêng nên không làm hỏng việc đăng bài nếu tạo thông báo thất bại.
+    await notifyNewArticle({ articleSlug: article.slug, articleTitle: article.title });
 
     return NextResponse.json({ slug: article.slug }, { status: 201 });
   } catch (err) {
