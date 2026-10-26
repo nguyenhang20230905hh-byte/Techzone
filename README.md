@@ -31,7 +31,7 @@ techzone/
 ├─ prisma/
 │  ├─ schema.prisma      # 9+ bảng: articles, categories, authors, users, tags,
 │  │                      # article_tags, comments, newsletter_subscribers, article_views...
-│  └─ seed.ts             # 18 bài viết mẫu tiếng Việt + 7 chuyên mục + 4 tài khoản
+│  └─ seed.ts             # 7 chuyên mục + 1 tài khoản ADMIN (không tạo bài mẫu)
 ├─ src/
 │  ├─ app/                # Các trang (page.tsx) + API routes (route.ts)
 │  ├─ components/         # Header, Footer, ArticleCard, CommentSection...
@@ -60,7 +60,7 @@ cp .env.example .env
 # 3. Đồng bộ schema vào database
 npm run db:push
 
-# 4. Seed dữ liệu mẫu (18 bài viết, 7 chuyên mục, 4 tài khoản)
+# 4. Seed: 7 chuyên mục + 1 tài khoản ADMIN (tuỳ chọn đặt ADMIN_EMAIL / ADMIN_PASSWORD)
 npm run db:seed
 
 # 5. Chạy app
@@ -69,16 +69,19 @@ npm run dev
 
 Mở `http://localhost:3000`.
 
-### Tài khoản mẫu sau khi seed
+### Tài khoản sau khi seed
 
-| Vai trò | Email | Mật khẩu |
-|---|---|---|
-| Quản trị viên | `admin@techzone.vn` | `techzone2026` |
-| Thành viên | `minhkhue@techzone.vn` | `techzone2026` |
-| Thành viên | `giabao@techzone.vn` | `techzone2026` |
-| Thành viên | `thuylinh@techzone.vn` | `techzone2026` |
+Seed chỉ tạo **1 tài khoản ADMIN**: mặc định `admin@techzone.vn` / `techzone2026`, hoặc
+email/mật khẩu bạn truyền qua biến môi trường:
 
-**Đổi mật khẩu các tài khoản này ngay** nếu deploy lên môi trường công khai thật.
+```bash
+ADMIN_EMAIL="ban@gmail.com" ADMIN_PASSWORD="mat-khau-cua-ban" npm run db:seed
+```
+
+Tài khoản thành viên do người đọc tự đăng ký ở `/dang-ky`. Không có bài viết mẫu — đăng bài
+đầu tiên bằng nút "Đăng bài" khi đăng nhập ADMIN.
+
+**Đổi mật khẩu mặc định ngay** nếu deploy lên môi trường công khai thật.
 Tài khoản ADMIN có thể vào trang `/admin` để quản lý chuyên mục, banner quảng cáo, đánh dấu
 bài nổi bật/Premium — mọi thứ tự điều chỉnh được, không cần sửa code.
 
@@ -106,6 +109,7 @@ git push -u origin main
    - `BLOB_READ_WRITE_TOKEN` — **bắt buộc nếu muốn upload ảnh hoạt động đúng trên production**
      (Vercel Dashboard → Storage → Blob → Create → Connect to Project → copy token).
    - `ANTHROPIC_API_KEY` *(tuỳ chọn)* — bật tóm tắt AI thật, không có vẫn chạy ở chế độ demo.
+   - `ANTHROPIC_MODEL` *(tuỳ chọn)* — model dùng để tóm tắt, mặc định `claude-haiku-5-5`.
    - `RESEND_API_KEY`, `RESEND_FROM_EMAIL` *(tuỳ chọn)* — bật gửi email newsletter thật.
 4. Bấm **Deploy**.
 5. Sau khi deploy xong lần đầu, mở **Vercel → Storage → Postgres hoặc terminal cục bộ** và chạy:
@@ -122,9 +126,7 @@ git push -u origin main
 - Trang chủ đúng bố cục tham khảo: banner quảng cáo → thanh tiện ích (ngày giờ thực) → header
   logo giữa → menu chuyên mục → cụm tin nổi bật (chính + phụ + sidebar tin mới/đọc nhiều) →
   lưới tin phụ → banner xen kẽ → 5 khối chuyên mục → footer.
-- 18 bài viết mẫu tiếng Việt (vượt yêu cầu tối thiểu 15), đủ 7 trường dữ liệu, phân bổ đúng số
-  lượng từng chuyên mục theo yêu cầu (AI 4 · Thiết bị số 4 · Kỹ năng số 4 · Xu hướng số 3,
-  cộng thêm 3 bài Đời sống số để khối chuyên mục thứ 5 không trống).
+- Bài viết do quản trị viên đăng trực tiếp trong app (nút "Đăng bài" khi đăng nhập ADMIN).
 - Trang chuyên mục, trang chi tiết bài viết, trang Về chúng tôi.
 
 **Mức 2 — Tương tác**
@@ -152,10 +154,6 @@ git push -u origin main
 
 ## 6. Giới hạn đã biết
 
-- Nội dung 18 bài viết mẫu do AI soạn thảo để có dữ liệu chạy ngay — cần đội biên tập chỉnh sửa
-  lại thành bài gốc trước khi dùng cho mục đích thực tế (đúng tinh thần mục 8 của bản yêu cầu).
-- Ảnh bìa mẫu lấy từ Unsplash (miễn phí bản quyền) — nên thay bằng ảnh tự chụp/thiết kế khi đưa
-  vào sử dụng thật.
 - Chưa có trang quên mật khẩu — có thể bổ sung sau bằng luồng gửi email reset qua Resend.
 - "Bài viết đã lưu" (saved articles) đã có sẵn trong schema database nhưng chưa có nút lưu ở
   giao diện — để dành cho giai đoạn mở rộng tiếp theo.
