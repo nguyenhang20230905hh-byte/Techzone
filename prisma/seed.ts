@@ -1,14 +1,14 @@
 /**
  * Seed TỐI THIỂU cho production: chỉ tạo 7 chuyên mục + 1 tài khoản ADMIN.
  * KHÔNG tạo bài viết mẫu — dùng khi bạn muốn tự đăng bài thật qua giao diện,
- * không cần dữ liệu demo của prisma/seed.ts.
+ * không cần dữ liệu demo.
  *
  * Chạy (trỏ đúng DATABASE_URL production):
  *   npm run db:push        # tạo bảng nếu chưa có
- *   npm run db:seed-admin  # chạy script này
+ *   npm run db:seed  # chạy script này
  *
  * Tuỳ chỉnh email/mật khẩu admin bằng biến môi trường, ví dụ:
- *   ADMIN_EMAIL="ban@gmail.com" ADMIN_PASSWORD="mat-khau-cua-ban" npm run db:seed-admin
+ *   ADMIN_EMAIL="ban@gmail.com" ADMIN_PASSWORD="mat-khau-cua-ban" npm run db:seed
  * Không truyền thì dùng mặc định: admin@techzone.vn / techzone2026 — NÊN đổi ngay sau khi seed.
  */
 import { PrismaClient } from "@prisma/client";
