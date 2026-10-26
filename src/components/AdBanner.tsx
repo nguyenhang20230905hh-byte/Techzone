@@ -17,6 +17,9 @@ export function TopAdBanner({ banner }: { banner: TopBanner }) {
           alt={banner.title}
           fill
           priority
+          // URL ảnh do admin tự nhập ở /admin — có thể thuộc tên miền bất kỳ. Không
+          // tối ưu qua Next để tránh lỗi "hostname is not configured" làm sập cả layout.
+          unoptimized
           sizes="100vw"
           className="object-cover opacity-70"
         />
@@ -47,6 +50,7 @@ export function InlineAdStrip({ ads }: { ads: InlineAd[] }) {
               src={ad.imageUrl}
               alt={ad.message}
               fill
+              unoptimized
               sizes="(max-width: 640px) 100vw, 33vw"
               className="object-cover transition group-hover:scale-105"
             />
