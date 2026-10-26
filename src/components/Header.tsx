@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Header({ slogan, isAdmin }: { slogan: string; isAdmin?: boolean }) {
   return (
@@ -48,6 +49,7 @@ export default function Header({ slogan, isAdmin }: { slogan: string; isAdmin?: 
               </a>
             </>
           )}
+          <NotificationBell />
           <Link
             href="/premium"
             className="rounded-full bg-navy px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-navy-light sm:px-4 sm:text-sm"
