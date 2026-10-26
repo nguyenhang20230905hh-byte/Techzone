@@ -11,7 +11,11 @@ const schema = z.object({
   title: z.string().trim().min(10, "Tiêu đề quá ngắn.").max(200),
   summary: z.string().trim().min(20, "Tóm tắt quá ngắn.").max(400),
   content: z.string().trim().min(400, "Nội dung bài viết nên có ít nhất khoảng 400 ký tự."),
-  coverImageUrl: z.string().url("Ảnh bìa không hợp lệ."),
+  // Chấp nhận URL tuyệt đối (Vercel Blob) hoặc đường dẫn "/uploads/..." khi upload
+  // lưu local lúc `npm run dev` không có BLOB_READ_WRITE_TOKEN.
+  coverImageUrl: z
+    .string()
+    .refine((v) => /^https?:\/\//.test(v) || v.startsWith("/uploads/"), "Ảnh bìa không hợp lệ."),
   categoryId: z.string().min(1, "Vui lòng chọn chuyên mục."),
   authorName: z.enum(ARTICLE_AUTHORS, { errorMap: () => ({ message: "Vui lòng chọn tác giả." }) }),
   tags: z.array(z.string().trim().min(1)).max(8).optional(),
